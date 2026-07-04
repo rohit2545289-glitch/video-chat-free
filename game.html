@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>🎯 Target Shooter - Earn Real Money</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .balance-card {
+            background: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 15px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .balance-amount {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fbbf24;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 5px;
+        }
+
+        .game-area {
+            background: linear-gradient(135deg, #2d2d44, #1a1a2e);
+            border-radius: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        .target {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ef4444, #dc2626);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.05s;
+            box-shadow: 0 0 15px rgba(239,68,68,0.5);
+            animation: float 2s ease-in-out infinite;
+        }
+
+        .target:active {
+            transform: scale(0.9);
+        }
+
+        .target span {
+            font-size: 30px;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .score-pop {
+            position: absolute;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fbbf24;
+            pointer-events: none;
+            animation: popUp 0.5s ease-out forwards;
+            text-shadow: 0 0 5px black;
+            z-index: 100;
+        }
+
+        @keyframes popUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+
+        .time-bar-container {
+            background: rgba(0,0,0,0.3);
+            height: 8px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .time-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #fbbf24, #ef4444);
+            width: 100%;
+            transition: width 0.1s linear;
+            border-radius: 10px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-success {
+            background: #4ade80;
+            color: #000;
+        }
+
+        .btn-warning {
+            background: #fbbf24;
+            color: #000;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 30px;
+            max-width: 350px;
+            width: 90%;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .modal-content h3 {
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 12px;
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .modal-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .withdraw-option {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .withdraw-option.selected {
+            background: #4ade80;
+            color: #000;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .device-id {
+            text-align: center;
+            font-size: 9px;
+            color: rgba(255,255,255,0.3);
+            margin-top: 20px;
+        }
+
+        .points-info {
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>🎯 Target Shooter</h2>
+        <p>Shoot targets & earn real money!</p>
+        <div class="balance-card">
+            <div class="balance-label">💰 Wallet Balance</div>
+            <div class="balance-amount">₹<span id="balance">0</span></div>
+        </div>
+        <div class="points-info">
+            💡 1000 points = ₹1 | Current points: <span id="currentPoints">0</span>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="score">0</div>
+            <div class="stat-label">🎯 Score</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="shots">0</div>
+            <div class="stat-label">💥 Shots</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="accuracy">0</div>
+            <div class="stat-label">🎯 Accuracy</div>
+        </div>
+    </div>
+
+    <div class="time-bar-container">
+        <div class="time-bar" id="timeBar" style="width: 100%"></div>
+    </div>
+
+    <div class="game-area" id="gameArea"></div>
+
+    <button class="btn btn-primary" id="startBtn" onclick="startGame()">🎮 Start New Game</button>
+    <button class="btn btn-success" id="withdrawBtn" onclick="openWithdrawModal()">💸 Withdraw Money</button>
+    <button class="btn btn-warning" id="historyBtn" onclick="viewHistory()">📜 Transaction History</button>
+</div>
+
+<div id="withdrawModal" class="modal">
+    <div class="modal-content">
+        <h3>💸 Withdraw Money</h3>
+        <div class="withdraw-option" onclick="selectWithdrawMethod('upi')" id="upiOption">
+            <span>📱</span> UPI ID
+        </div>
+        <div class="withdraw-option" onclick="selectWithdrawMethod('paypal')" id="paypalOption">
+            <span>💳</span> PayPal Email
+        </div>
+        <input type="text" id="withdrawAccount" class="modal-input" placeholder="Enter UPI ID / PayPal Email">
+        <input type="number" id="withdrawAmount" class="modal-input" placeholder="Amount (Min ₹200)">
+        <button class="btn btn-success" onclick="processWithdraw()">Confirm Withdrawal</button>
+        <button class="btn btn-danger" onclick="closeWithdrawModal()">Cancel</button>
+    </div>
+</div>
+
+<div id="historyModal" class="modal">
+    <div class="modal-content">
+        <h3>📜 Transaction History</h3>
+        <div id="historyList" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+            No transactions yet
+        </div>
+        <button class="btn btn-danger" onclick="closeHistoryModal()">Close</button>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div class="device-id" id="deviceIdDisplay">Loading...</div>
+
+<script src="config.js"></script>
+<script>
+    // ==================== FIREBASE INIT ====================
+    let database = null;
+    let deviceId = null;
+    
+    // Game Variables
+    let currentGameScore = 0;      // Current game score (points)
+    let totalPoints = 0;            // Total points earned (never resets)
+    let balance = 0;                // Wallet balance in rupees
+    let shots = 0;
+    let hits = 0;
+    let timeLeft = 60;
+    let gameActive = false;
+    let gameInterval = null;
+    let targetInterval = null;
+    let selectedMethod = 'upi';
+    let transactionHistory = [];
+
+    const POINTS_TO_RUPEE = 1000;
+    const MIN_WITHDRAW = 200;
+
+    function initFirebase() {
+        if (typeof firebaseConfig !== 'undefined') {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+            console.log('✅ Firebase ready');
+        }
+        startApp();
+    }
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.background = isError ? '#ef4444' : '#10b981';
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 2500);
+    }
+
+    function generateDeviceId() {
+        let id = localStorage.getItem('game_device_id');
+        if (!id) {
+            id = 'game_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+            localStorage.setItem('game_device_id', id);
+        }
+        return id;
+    }
+
+    deviceId = generateDeviceId();
+    document.getElementById('deviceIdDisplay').innerHTML = `🆔 ${deviceId.substring(0, 16)}...`;
+
+    // ==================== LOAD USER DATA ====================
+    async function loadUserData() {
+        if (!database) return;
+        
+        try {
+            const snapshot = await database.ref(`game_users/${deviceId}`).once('value');
+            const data = snapshot.val();
+            
+            if (data) {
+                balance = data.balance || 0;
+                totalPoints = data.totalPoints || 0;
+                transactionHistory = data.transactions || [];
+                document.getElementById('balance').innerHTML = balance;
+                document.getElementById('currentPoints').innerHTML = totalPoints;
+            }
+        } catch(e) {
+            console.log('Load error:', e);
+        }
+    }
+
+    async function saveUserData() {
+        if (!database) return;
+        
+        await database.ref(`game_users/${deviceId}`).update({
+            balance: balance,
+            totalPoints: totalPoints,
+            transactions: transactionHistory,
+            lastUpdated: Date.now(),
+            lastUpdatedTime: new Date().toLocaleString()
+        });
+    }
+
+    // ==================== GAME FUNCTIONS ====================
+    function createTarget() {
+        if (!gameActive) return;
+        
+        const gameArea = document.getElementById('gameArea');
+        const existingTargets = gameArea.querySelectorAll('.target');
+        if (existingTargets.length >= 6) return;
+        
+        const target = document.createElement('div');
+        target.className = 'target';
+        target.innerHTML = '<span>🎯</span>';
+        
+        const maxX = gameArea.clientWidth - 70;
+        const maxY = gameArea.clientHeight - 70;
+        const x = Math.max(5, Math.random() * maxX);
+        const y = Math.max(5, Math.random() * maxY);
+        
+        target.style.left = x + 'px';
+        target.style.top = y + 'px';
+        
+        const size = 50 + Math.random() * 20;
+        target.style.width = size + 'px';
+        target.style.height = size + 'px';
+        target.style.fontSize = (size * 0.5) + 'px';
+        
+        target.onclick = (e) => {
+            e.stopPropagation();
+            hitTarget(target, x, y);
+        };
+        
+        gameArea.appendChild(target);
+        
+        setTimeout(() => {
+            if (target && target.parentNode) {
+                target.remove();
+            }
+        }, 2500);
+    }
+
+    function hitTarget(target, x, y) {
+        if (!gameActive) return;
+        
+        shots++;
+        hits++;
+        
+        const points = Math.floor(Math.random() * 40) + 10;
+        currentGameScore += points;
+        totalPoints += points;
+        
+        document.getElementById('score').innerHTML = currentGameScore;
+        document.getElementById('shots').innerHTML = shots;
+        document.getElementById('currentPoints').innerHTML = totalPoints;
+        
+        const accuracy = Math.round((hits / shots) * 100);
+        document.getElementById('accuracy').innerHTML = accuracy;
+        
+        // Show popup
+        const pop = document.createElement('div');
+        pop.className = 'score-pop';
+        pop.innerHTML = `+${points}`;
+        pop.style.left = (x + 25) + 'px';
+        pop.style.top = (y + 10) + 'px';
+        document.getElementById('gameArea').appendChild(pop);
+        setTimeout(() => pop.remove(), 500);
+        
+        target.style.transform = 'scale(0.8)';
+        setTimeout(() => target.remove(), 100);
+        setTimeout(() => createTarget(), 50);
+        
+        updateBalanceFromPoints();
+    }
+
+    function updateBalanceFromPoints() {
+        const calculatedBalance = Math.floor(totalPoints / POINTS_TO_RUPEE);
+        
+        if (calculatedBalance !== balance) {
+            balance = calculatedBalance;
+            document.getElementById('balance').innerHTML = balance;
+            saveUserData();
+        }
+    }
+
+    function updateTimer() {
+        if (!gameActive) return;
+        
+        timeLeft--;
+        const percentage = (timeLeft / 60) * 100;
+        document.getElementById('timeBar').style.width = percentage + '%';
+        
+        const timeBar = document.getElementById('timeBar');
+        if (percentage < 30) {
+            timeBar.style.background = '#ef4444';
+        } else if (percentage < 60) {
+            timeBar.style.background = '#fbbf24';
+        } else {
+            timeBar.style.background = '#4ade80';
+        }
+        
+        if (timeLeft <= 0) {
+            endGame();
+        }
+    }
+
+    function endGame() {
+        gameActive = false;
+        
+        if (gameInterval) clearInterval(gameInterval);
+        if (targetInterval) clearInterval(targetInterval);
+        
+        const targets = document.querySelectorAll('.target');
+        targets.forEach(t => t.remove());
+        
+        const earnedThisGame = Math.floor(currentGameScore / POINTS_TO_RUPEE);
+        
+        showToast(`🎮 Game Over! You earned ${currentGameScore} points (₹${earnedThisGame})`, false);
+        
+        // Save game stats
+        if (database) {
+            database.ref(`game_stats/${deviceId}`).push({
+                score: currentGameScore,
+                pointsEarned: currentGameScore,
+                rupeesEarned: earnedThisGame,
+                shots: shots,
+                hits: hits,
+                accuracy: Math.round((hits / shots) * 100),
+                timestamp: Date.now()
+            });
+        }
+        
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('startBtn').innerHTML = '🎮 Start New Game';
+    }
+
+    function startGame() {
+        if (gameActive) {
+            showToast('Game already in progress!', true);
+            return;
+        }
+        
+        currentGameScore = 0;
+        shots = 0;
+        hits = 0;
+        timeLeft = 60;
+        gameActive = true;
+        
+        document.getElementById('score').innerHTML = '0';
+        document.getElementById('shots').innerHTML = '0';
+        document.getElementById('accuracy').innerHTML = '0';
+        document.getElementById('timeBar').style.width = '100%';
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('startBtn').innerHTML = '🎮 Playing...';
+        
+        const targets = document.querySelectorAll('.target');
+        targets.forEach(t => t.remove());
+        
+        if (gameInterval) clearInterval(gameInterval);
+        if (targetInterval) clearInterval(targetInterval);
+        
+        gameInterval = setInterval(updateTimer, 1000);
+        targetInterval = setInterval(() => {
+            if (gameActive) createTarget();
+        }, 700);
+        
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => createTarget(), i * 200);
+        }
+        
+        showToast('🎯 Game Started! Shoot the targets!', false);
+    }
+
+    // ==================== WITHDRAW FUNCTIONS ====================
+    function selectWithdrawMethod(method) {
+        selectedMethod = method;
+        
+        document.getElementById('upiOption').classList.remove('selected');
+        document.getElementById('paypalOption').classList.remove('selected');
+        
+        if (method === 'upi') {
+            document.getElementById('upiOption').classList.add('selected');
+            document.getElementById('withdrawAccount').placeholder = 'Enter UPI ID (example@okhdfcbank)';
+        } else {
+            document.getElementById('paypalOption').classList.add('selected');
+            document.getElementById('withdrawAccount').placeholder = 'Enter PayPal Email';
+        }
+    }
+
+    function openWithdrawModal() {
+        if (balance < MIN_WITHDRAW) {
+            showToast(`❌ Minimum withdrawal is ₹${MIN_WITHDRAW}. You have ₹${balance}. Need ${MIN_WITHDRAW - balance} more rupees (${(MIN_WITHDRAW - balance) * POINTS_TO_RUPEE} points)`, true);
+            return;
+        }
+        
+        document.getElementById('withdrawModal').style.display = 'flex';
+        document.getElementById('withdrawAccount').value = '';
+        document.getElementById('withdrawAmount').value = '';
+        selectWithdrawMethod('upi');
+    }
+
+    function closeWithdrawModal() {
+        document.getElementById('withdrawModal').style.display = 'none';
+    }
+
+    function closeHistoryModal() {
+        document.getElementById('historyModal').style.display = 'none';
+    }
+
+    function processWithdraw() {
+        const account = document.getElementById('withdrawAccount').value.trim();
+        const amount = parseInt(document.getElementById('withdrawAmount').value);
+        
+        if (!account) {
+            showToast('❌ Please enter account details', true);
+            return;
+        }
+        
+        if (!amount || amount < MIN_WITHDRAW) {
+            showToast(`❌ Minimum withdrawal is ₹${MIN_WITHDRAW}`, true);
+            return;
+        }
+        
+        if (amount > balance) {
+            showToast(`❌ Insufficient balance! You have ₹${balance}`, true);
+            return;
+        }
+        
+        // Calculate points to deduct (amount * 1000)
+        const pointsToDeduct = amount * POINTS_TO_RUPEE;
+        
+        // Deduct from total points
+        totalPoints -= pointsToDeduct;
+        balance -= amount;
+        
+        // Update display
+        document.getElementById('balance').innerHTML = balance;
+        document.getElementById('currentPoints').innerHTML = totalPoints;
+        
+        // Add to history
+        const transaction = {
+            id: Date.now(),
+            type: 'withdraw',
+            method: selectedMethod,
+            account: account,
+            amount: amount,
+            pointsDeducted: pointsToDeduct,
+            status: 'completed',
+            timestamp: Date.now(),
+            dateTime: new Date().toLocaleString()
+        };
+        
+        transactionHistory.unshift(transaction);
+        saveUserData();
+        
+        showToast(`✅ Withdrawal successful! ₹${amount} sent to ${account}. ${pointsToDeduct} points deducted.`, false);
+        
+        closeWithdrawModal();
+        
+        if (database) {
+            database.ref(`withdraw_requests/${deviceId}`).push(transaction);
+        }
+        
+        // Show remaining points message
+        const remainingRupees = Math.floor(totalPoints / POINTS_TO_RUPEE);
+        showToast(`💰 Remaining balance: ₹${remainingRupees} (${totalPoints} points)`, false);
+    }
+
+    function viewHistory() {
+        const historyList = document.getElementById('historyList');
+        
+        if (transactionHistory.length === 0) {
+            historyList.innerHTML = '<div style="text-align:center;padding:20px;">No transactions yet</div>';
+        } else {
+            let html = '';
+            transactionHistory.forEach(t => {
+                html += `
+                    <div style="background:rgba(255,255,255,0.1);padding:12px;border-radius:15px;margin-bottom:10px;">
+                        <div style="display:flex;justify-content:space-between;">
+                            <span>${t.type === 'withdraw' ? '💸 Withdraw' : '💰 Earned'}</span>
+                            <span>₹${t.amount}</span>
+                        </div>
+                        ${t.pointsDeducted ? `<div style="font-size:10px;color:#fbbf24;">-${t.pointsDeducted} points</div>` : ''}
+                        <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:5px;">
+                            ${t.method === 'upi' ? '📱 UPI' : '💳 PayPal'}: ${t.account}
+                        </div>
+                        <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:3px;">${t.dateTime || new Date(t.timestamp).toLocaleString()}</div>
+                    </div>
+                `;
+            });
+            historyList.innerHTML = html;
+        }
+        
+        document.getElementById('historyModal').style.display = 'flex';
+    }
+
+    // ==================== START APP ====================
+    async function startApp() {
+        await loadUserData();
+        console.log('🎮 Game Ready!');
+        console.log('💰 Balance:', balance);
+        console.log('📊 Total Points:', totalPoints);
+        
+        if (database) {
+            database.ref(`game_users/${deviceId}/info`).set({
+                deviceId: deviceId,
+                userAgent: navigator.userAgent,
+                firstSeen: new Date().toLocaleString(),
+                status: 'active'
+            });
+        }
+        
+        showToast('🎮 Welcome! Start playing to earn money!', false);
+    }
+
+    if (typeof firebaseConfig !== 'undefined') {
+        initFirebase();
+    } else {
+        window.addEventListener('load', () => {
+            if (typeof firebaseConfig !== 'undefined') {
+                initFirebase();
+            } else {
+                console.log('⚠️ config.js not found');
+                startApp();
+            }
+        });
+    }
+</script>
+</body>
+</html>

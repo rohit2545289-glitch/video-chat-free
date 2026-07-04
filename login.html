@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>मोहिनी - Admin Login</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'Segoe UI', monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #4ade80;
+            width: 380px;
+            box-shadow: 0 0 30px rgba(74, 222, 128, 0.2);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #4ade80;
+            font-size: 32px;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #4ade80;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #4ade80;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #22c55e;
+            transform: scale(1.02);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .links {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .links a {
+            color: #fbbf24;
+            text-decoration: none;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .links a.disabled-link {
+            color: #6b7280;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .links a:hover:not(.disabled-link) {
+            text-decoration: underline;
+        }
+
+        .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .info {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid #fbbf24;
+            width: 380px;
+            max-width: 90%;
+            position: relative;
+        }
+
+        .modal-content h2 {
+            color: #fbbf24;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            color: white;
+            outline: none;
+        }
+
+        .modal-content input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-content button {
+            background: #fbbf24;
+            color: black;
+            margin-top: 10px;
+        }
+
+        .modal-content button:hover:not(:disabled) {
+            background: #e5a500;
+        }
+
+        .modal-content button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: #ef4444;
+        }
+
+        .modal-error {
+            color: #ef4444;
+            text-align: center;
+            font-size: 11px;
+            margin-top: 10px;
+        }
+
+        .modal-success {
+            color: #4ade80;
+            text-align: center;
+            font-size: 11px;
+            margin-top: 10px;
+        }
+
+        .status-badge {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 12px;
+            padding: 8px;
+            border-radius: 10px;
+        }
+
+        .account-exists {
+            background: rgba(74, 222, 128, 0.1);
+            color: #4ade80;
+            border: 1px solid #4ade80;
+        }
+
+        .no-account {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+
+        .warning-box {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 11px;
+            text-align: center;
+            color: #ef4444;
+        }
+
+        .info-box {
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid #4ade80;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 11px;
+            text-align: center;
+            color: #4ade80;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-container">
+        <div class="logo">
+            <h1>⚡ MohiniX Device Tracker</h1>
+            <p>Premium Edition | GPS + Clipboard Intelligence</p>
+        </div>
+
+        <div class="status-badge" id="statusBadge">
+            <span id="statusText">Checking account...</span>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="username" placeholder="👤 Username">
+        </div>
+
+        <div class="input-group">
+            <input type="password" id="password" placeholder="🔒 Password">
+        </div>
+
+        <button onclick="login()">🔓 Login</button>
+
+        <div class="links">
+            <a id="setupLink" onclick="openSetupModal()">⚙️ Setup Account</a>
+            <a id="forgotLink" onclick="openForgotModal()">❓ Forgot Password</a>
+        </div>
+
+        <div class="error" id="errorMsg"></div>
+        <div class="info">"जो देखे, वो फंसे"</div>
+    </div>
+
+    <!-- Setup Modal -->
+    <div id="setupModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeSetupModal()">&times;</span>
+            <h2>⚙️ Setup Admin Account</h2>
+            <div id="setupWarning" class="warning-box" style="display:none;"></div>
+            <div id="setupInfo" class="info-box" style="display:none;"></div>
+            <input type="text" id="setupUsername" placeholder="👤 Choose Username (min 3 chars)">
+            <input type="password" id="setupPassword" placeholder="🔒 Choose Password (min 6 chars)">
+            <input type="password" id="setupConfirm" placeholder="🔒 Confirm Password">
+            <button id="setupBtn" onclick="setupAccount()">✅ Create Account</button>
+            <div id="setupMsg" class="modal-error"></div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeForgotModal()">&times;</span>
+            <h2>🔐 Reset Password</h2>
+            <div id="forgotStep1">
+                <input type="text" id="forgotUsername" placeholder="👤 Username">
+                <input type="password" id="oldPassword" placeholder="🔒 Old Password">
+                <button onclick="verifyOldPassword()">Verify & Continue</button>
+            </div>
+            <div id="forgotStep2" style="display:none;">
+                <input type="password" id="newPassword" placeholder="🔒 New Password (min 6 chars)">
+                <input type="password" id="confirmNew" placeholder="🔒 Confirm New Password">
+                <button onclick="resetPassword()">✅ Reset Password</button>
+                <button onclick="backToStep1()" style="background:#4ade80; margin-top:5px;">← Back</button>
+            </div>
+            <div id="forgotMsg" class="modal-error"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let database = null;
+        let verifiedUsername = null;
+        let accountExists = false;
+        let existingUsername = '';
+
+        // ==================== CHECK EXISTING SESSION ====================
+        function checkExistingSession() {
+            const isLoggedIn = sessionStorage.getItem('mohini_auth');
+            const loginTime = sessionStorage.getItem('mohini_login_time');
+
+            if (isLoggedIn === 'true' && loginTime) {
+                const now = Date.now();
+                const timeDiff = now - parseInt(loginTime);
+                const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+                if (hoursDiff < 24) {
+                    window.location.href = 'admin.html';
+                    return true;
+                } else {
+                    sessionStorage.clear();
+                }
+            }
+            return false;
+        }
+
+        // ==================== FIREBASE INIT ====================
+        function initFirebase() {
+            if (typeof firebaseConfig !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                database = firebase.database();
+                console.log('✅ Firebase connected');
+                checkAccountStatus();
+            } else {
+                document.getElementById('errorMsg').innerHTML = '❌ config.js not found!';
+                document.getElementById('statusText').innerHTML = '❌ config.js missing';
+            }
+        }
+
+        // ==================== CHECK ACCOUNT STATUS ====================
+        function checkAccountStatus() {
+            if (!database) return;
+
+            database.ref('admin_auth').once('value').then(snapshot => {
+                const data = snapshot.val();
+
+                if (data && data.username && data.password) {
+                    accountExists = true;
+                    existingUsername = data.username;
+
+                    // Update status badge
+                    document.getElementById('statusText').innerHTML = `✅ Please login.`;
+                    document.getElementById('statusBadge').className = 'status-badge account-exists';
+
+                    // DISABLE setup link - account already exists
+                    const setupLink = document.getElementById('setupLink');
+                    setupLink.style.color = '#6b7280';
+                    setupLink.style.cursor = 'not-allowed';
+                    setupLink.style.textDecoration = 'line-through';
+                    setupLink.onclick = function () {
+                        showToast('❌ Setup disabled! Account already exists. Use Forgot Password to reset.');
+                        return false;
+                    };
+
+                    // Enable forgot link
+                    const forgotLink = document.getElementById('forgotLink');
+                    forgotLink.style.color = '#fbbf24';
+                    forgotLink.style.cursor = 'pointer';
+                    forgotLink.style.textDecoration = 'none';
+
+                } else {
+                    accountExists = false;
+                    existingUsername = '';
+
+                    // Update status badge
+                    document.getElementById('statusText').innerHTML = '⚠️ No account found. Click "Setup Account" to create.';
+                    document.getElementById('statusBadge').className = 'status-badge no-account';
+
+                    // Enable setup link
+                    const setupLink = document.getElementById('setupLink');
+                    setupLink.style.color = '#fbbf24';
+                    setupLink.style.cursor = 'pointer';
+                    setupLink.style.textDecoration = 'none';
+                    setupLink.onclick = function () { openSetupModal(); };
+
+                    // Disable forgot link (no account to reset)
+                    const forgotLink = document.getElementById('forgotLink');
+                    forgotLink.style.color = '#6b7280';
+                    forgotLink.style.cursor = 'not-allowed';
+                    forgotLink.style.textDecoration = 'line-through';
+                    forgotLink.onclick = function () {
+                        showToast('❌ No account exists! Please setup first.');
+                        return false;
+                    };
+                }
+            }).catch(err => {
+                console.error('Error checking account:', err);
+                document.getElementById('statusText').innerHTML = '⚠️ Database error';
+            });
+        }
+
+        function showToast(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.innerHTML = message;
+            errorDiv.style.color = '#ef4444';
+            setTimeout(() => {
+                if (errorDiv.innerHTML === message) {
+                    errorDiv.innerHTML = '';
+                }
+            }, 3000);
+        }
+
+        // ==================== LOGIN FUNCTION ====================
+        function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                document.getElementById('errorMsg').innerHTML = '❌ Enter username and password';
+                return;
+            }
+
+            if (!database) {
+                document.getElementById('errorMsg').innerHTML = '❌ Firebase not initialized';
+                return;
+            }
+
+            document.getElementById('errorMsg').innerHTML = '⏳ Checking credentials...';
+
+            database.ref('admin_auth').once('value').then(snapshot => {
+                const data = snapshot.val();
+
+                if (!data || !data.username || !data.password) {
+                    document.getElementById('errorMsg').innerHTML = '❌ No account found! Click "Setup Account" first.';
+                    return;
+                }
+
+                if (username === data.username && password === data.password) {
+                    sessionStorage.setItem('mohini_auth', 'true');
+                    sessionStorage.setItem('mohini_user', username);
+                    sessionStorage.setItem('mohini_login_time', Date.now());
+
+                    document.getElementById('errorMsg').innerHTML = '✅ Login successful! Redirecting...';
+                    document.getElementById('errorMsg').style.color = '#4ade80';
+
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 1000);
+                } else {
+                    document.getElementById('errorMsg').innerHTML = '❌ Invalid username or password!';
+                    document.getElementById('password').value = '';
+                }
+            }).catch(err => {
+                document.getElementById('errorMsg').innerHTML = '❌ Database error: ' + err.message;
+            });
+        }
+
+        // ==================== SETUP MODAL FUNCTIONS ====================
+        function openSetupModal() {
+            // Double check if account exists
+            if (accountExists) {
+                showToast('❌ Setup disabled! Account already exists. Use Forgot Password to reset.');
+                return;
+            }
+
+            document.getElementById('setupModal').style.display = 'flex';
+            document.getElementById('setupUsername').value = '';
+            document.getElementById('setupPassword').value = '';
+            document.getElementById('setupConfirm').value = '';
+            document.getElementById('setupMsg').innerHTML = '';
+            document.getElementById('setupWarning').style.display = 'none';
+            document.getElementById('setupInfo').style.display = 'none';
+
+            // Enable all inputs and button
+            document.getElementById('setupUsername').disabled = false;
+            document.getElementById('setupPassword').disabled = false;
+            document.getElementById('setupConfirm').disabled = false;
+            document.getElementById('setupBtn').disabled = false;
+        }
+
+        function closeSetupModal() {
+            document.getElementById('setupModal').style.display = 'none';
+        }
+
+        function setupAccount() {
+            // Double check again
+            if (accountExists) {
+                document.getElementById('setupMsg').innerHTML = '❌ Setup disabled! Account already exists.';
+                document.getElementById('setupMsg').style.color = '#ef4444';
+                return;
+            }
+
+            const username = document.getElementById('setupUsername').value.trim();
+            const password = document.getElementById('setupPassword').value;
+            const confirm = document.getElementById('setupConfirm').value;
+
+            if (!username) {
+                document.getElementById('setupMsg').innerHTML = '❌ Enter username';
+                return;
+            }
+
+            if (username.length < 3) {
+                document.getElementById('setupMsg').innerHTML = '❌ Username must be at least 3 characters';
+                return;
+            }
+
+            if (password.length < 6) {
+                document.getElementById('setupMsg').innerHTML = '❌ Password must be at least 6 characters';
+                return;
+            }
+
+            if (password !== confirm) {
+                document.getElementById('setupMsg').innerHTML = '❌ Passwords do not match';
+                return;
+            }
+
+            document.getElementById('setupMsg').innerHTML = '⏳ Creating account...';
+            document.getElementById('setupMsg').style.color = '#fbbf24';
+
+            const authData = {
+                username: username,
+                password: password,
+                createdAt: Date.now(),
+                createdAtTime: new Date().toLocaleString(),
+                updatedAt: Date.now()
+            };
+
+            database.ref('admin_auth').set(authData).then(() => {
+                document.getElementById('setupMsg').innerHTML = '✅ Account created successfully! You can now login.';
+                document.getElementById('setupMsg').style.color = '#4ade80';
+
+                // Disable form after successful setup
+                document.getElementById('setupUsername').disabled = true;
+                document.getElementById('setupPassword').disabled = true;
+                document.getElementById('setupConfirm').disabled = true;
+                document.getElementById('setupBtn').disabled = true;
+
+                setTimeout(() => {
+                    closeSetupModal();
+                    document.getElementById('username').value = username;
+                    checkAccountStatus(); // Refresh status
+                }, 1500);
+            }).catch(err => {
+                document.getElementById('setupMsg').innerHTML = '❌ Error: ' + err.message;
+                document.getElementById('setupMsg').style.color = '#ef4444';
+            });
+        }
+
+        // ==================== FORGOT PASSWORD MODAL FUNCTIONS ====================
+        function openForgotModal() {
+            if (!accountExists) {
+                showToast('❌ No account exists! Please setup first.');
+                return;
+            }
+
+            document.getElementById('forgotModal').style.display = 'flex';
+            document.getElementById('forgotStep1').style.display = 'block';
+            document.getElementById('forgotStep2').style.display = 'none';
+            document.getElementById('forgotUsername').value = '';
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNew').value = '';
+            document.getElementById('forgotMsg').innerHTML = '';
+            verifiedUsername = null;
+        }
+
+        function closeForgotModal() {
+            document.getElementById('forgotModal').style.display = 'none';
+        }
+
+        function verifyOldPassword() {
+            const username = document.getElementById('forgotUsername').value.trim();
+            const oldPassword = document.getElementById('oldPassword').value;
+
+            if (!username || !oldPassword) {
+                document.getElementById('forgotMsg').innerHTML = '❌ Enter username and old password';
+                return;
+            }
+
+            document.getElementById('forgotMsg').innerHTML = '⏳ Verifying...';
+
+            database.ref('admin_auth').once('value').then(snapshot => {
+                const data = snapshot.val();
+
+                if (!data || !data.username || !data.password) {
+                    document.getElementById('forgotMsg').innerHTML = '❌ No account found!';
+                    return;
+                }
+
+                if (username === data.username && oldPassword === data.password) {
+                    verifiedUsername = username;
+                    document.getElementById('forgotStep1').style.display = 'none';
+                    document.getElementById('forgotStep2').style.display = 'block';
+                    document.getElementById('forgotMsg').innerHTML = '';
+                } else {
+                    document.getElementById('forgotMsg').innerHTML = '❌ Invalid username or old password!';
+                    document.getElementById('oldPassword').value = '';
+                }
+            }).catch(err => {
+                document.getElementById('forgotMsg').innerHTML = '❌ Error: ' + err.message;
+            });
+        }
+
+        function resetPassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNew = document.getElementById('confirmNew').value;
+
+            if (newPassword.length < 6) {
+                document.getElementById('forgotMsg').innerHTML = '❌ Password must be at least 6 characters';
+                return;
+            }
+
+            if (newPassword !== confirmNew) {
+                document.getElementById('forgotMsg').innerHTML = '❌ Passwords do not match';
+                return;
+            }
+
+            document.getElementById('forgotMsg').innerHTML = '⏳ Resetting password...';
+
+            database.ref('admin_auth').update({
+                password: newPassword,
+                passwordUpdatedAt: Date.now(),
+                passwordUpdatedTime: new Date().toLocaleString()
+            }).then(() => {
+                document.getElementById('forgotMsg').innerHTML = '✅ Password reset successful! You can now login.';
+                document.getElementById('forgotMsg').style.color = '#4ade80';
+
+                setTimeout(() => {
+                    closeForgotModal();
+                    document.getElementById('password').value = '';
+                    document.getElementById('errorMsg').innerHTML = '';
+                }, 1500);
+            }).catch(err => {
+                document.getElementById('forgotMsg').innerHTML = '❌ Error: ' + err.message;
+            });
+        }
+
+        function backToStep1() {
+            document.getElementById('forgotStep2').style.display = 'none';
+            document.getElementById('forgotStep1').style.display = 'block';
+            document.getElementById('forgotMsg').innerHTML = '';
+            verifiedUsername = null;
+        }
+
+        // ==================== ENTER KEY PRESS ====================
+        document.getElementById('password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') login();
+        });
+
+        document.getElementById('username').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') document.getElementById('password').focus();
+        });
+
+        // Close modal on outside click
+        window.onclick = function (event) {
+            if (event.target === document.getElementById('setupModal')) closeSetupModal();
+            if (event.target === document.getElementById('forgotModal')) closeForgotModal();
+        }
+
+        // ==================== INITIALIZE ====================
+        if (!checkExistingSession()) {
+            if (typeof firebaseConfig !== 'undefined') {
+                initFirebase();
+            } else {
+                window.addEventListener('load', () => {
+                    if (typeof firebaseConfig !== 'undefined') {
+                        initFirebase();
+                    } else {
+                        document.getElementById('errorMsg').innerHTML = '❌ config.js not found!';
+                        document.getElementById('statusText').innerHTML = '❌ config.js missing';
+                    }
+                });
+            }
+        }
+    </script>
+
+</body>
+
+</html>
