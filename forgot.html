@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>मोहिनी - Forgot Password</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'Segoe UI', monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .forgot-container {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #fbbf24;
+            width: 380px;
+        }
+        
+        .logo h1 {
+            color: #fbbf24;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #fbbf24;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #fbbf24;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .success {
+            color: #4ade80;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .step {
+            color: #fbbf24;
+            font-size: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="forgot-container">
+    <div class="logo">
+        <h1>🔐 Reset Password</h1>
+    </div>
+    
+    <div class="step" id="step">Step 1: Verify Old Password</div>
+    
+    <div id="step1" style="display:block;">
+        <div class="input-group">
+            <input type="text" id="username" placeholder="👤 Username">
+        </div>
+        <div class="input-group">
+            <input type="password" id="oldPassword" placeholder="🔒 Old Password">
+        </div>
+        <button onclick="verifyOldPassword()">Verify & Continue</button>
+    </div>
+    
+    <div id="step2" style="display:none;">
+        <div class="input-group">
+            <input type="password" id="newPassword" placeholder="🔒 New Password (min 6 chars)">
+        </div>
+        <div class="input-group">
+            <input type="password" id="confirmNew" placeholder="🔒 Confirm New Password">
+        </div>
+        <button onclick="resetPassword()">✅ Reset Password</button>
+    </div>
+    
+    <button class="back-btn" onclick="goBack()">← Back to Login</button>
+    
+    <div id="message"></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+    let database = null;
+    let verifiedUsername = null;
+    
+    function initFirebase() {
+        if (typeof firebaseConfig !== 'undefined') {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            database = firebase.database();
+        } else {
+            document.getElementById('message').innerHTML = '❌ config.js not found!';
+        }
+    }
+    
+    function verifyOldPassword() {
+        const username = document.getElementById('username').value.trim();
+        const oldPassword = document.getElementById('oldPassword').value;
+        
+        if (!username || !oldPassword) {
+            document.getElementById('message').innerHTML = '❌ Enter username and old password';
+            return;
+        }
+        
+        if (!database) {
+            document.getElementById('message').innerHTML = '❌ Firebase not initialized';
+            return;
+        }
+        
+        document.getElementById('message').innerHTML = '⏳ Verifying...';
+        
+        database.ref('admin_auth').once('value').then(snapshot => {
+            const data = snapshot.val();
+            
+            if (!data || !data.username || !data.password) {
+                document.getElementById('message').innerHTML = '❌ No account found! Please setup first.';
+                return;
+            }
+            
+            if (username === data.username && oldPassword === data.password) {
+                // Verified
+                verifiedUsername = username;
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
+                document.getElementById('step').innerHTML = 'Step 2: Enter New Password';
+                document.getElementById('message').innerHTML = '';
+            } else {
+                document.getElementById('message').innerHTML = '❌ Invalid username or old password!';
+                document.getElementById('oldPassword').value = '';
+            }
+        }).catch(err => {
+            document.getElementById('message').innerHTML = '❌ Error: ' + err.message;
+        });
+    }
+    
+    function resetPassword() {
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNew = document.getElementById('confirmNew').value;
+        
+        if (newPassword.length < 6) {
+            document.getElementById('message').innerHTML = '❌ New password must be at least 6 characters';
+            return;
+        }
+        
+        if (newPassword !== confirmNew) {
+            document.getElementById('message').innerHTML = '❌ Passwords do not match';
+            return;
+        }
+        
+        document.getElementById('message').innerHTML = '⏳ Resetting password...';
+        
+        database.ref('admin_auth').update({
+            password: newPassword,
+            passwordUpdatedAt: Date.now(),
+            passwordUpdatedTime: new Date().toLocaleString()
+        }).then(() => {
+            document.getElementById('message').innerHTML = '✅ Password reset successful! Redirecting to login...';
+            document.getElementById('message').className = 'success';
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+        }).catch(err => {
+            document.getElementById('message').innerHTML = '❌ Error: ' + err.message;
+        });
+    }
+    
+    function goBack() {
+        window.location.href = 'login.html';
+    }
+    
+    if (typeof firebaseConfig !== 'undefined') {
+        initFirebase();
+    } else {
+        window.addEventListener('load', () => {
+            if (typeof firebaseConfig !== 'undefined') {
+                initFirebase();
+            } else {
+                document.getElementById('message').innerHTML = '❌ config.js not found!';
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

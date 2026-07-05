@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>मोहिनी - Setup Account</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'Segoe UI', monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .setup-container {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #fbbf24;
+            width: 380px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #fbbf24;
+            font-size: 28px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #fbbf24;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: #4ade80;
+        }
+
+        .input-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #fbbf24;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #e5a500;
+            transform: scale(1.02);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .success {
+            color: #4ade80;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 11px;
+            text-align: center;
+            color: #ef4444;
+        }
+
+        .info-box {
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid #4ade80;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 11px;
+            text-align: center;
+            color: #4ade80;
+        }
+
+        .disabled-overlay {
+            position: relative;
+        }
+
+        .disabled-reason {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="setup-container">
+        <div class="logo">
+            <h1>⚙️ मोहिनी Setup</h1>
+            <p style="color:rgba(255,255,255,0.6); font-size:12px;" id="subtitle">Create Admin Account</p>
+        </div>
+
+        <div id="warningMsg" class="warning" style="display:none;"></div>
+        <div id="infoMsg" class="info-box" style="display:none;"></div>
+
+        <div class="input-group">
+            <input type="text" id="username" placeholder="👤 Choose Username">
+        </div>
+
+        <div class="input-group">
+            <input type="password" id="password" placeholder="🔒 Choose Password (min 6 chars)">
+        </div>
+
+        <div class="input-group">
+            <input type="password" id="confirmPassword" placeholder="🔒 Confirm Password">
+        </div>
+
+        <button id="setupBtn" onclick="setupAccount()">✅ Create Account</button>
+        <button class="back-btn" onclick="goBack()">← Back to Login</button>
+
+        <div id="message"></div>
+        <div id="disabledReason" class="disabled-reason" style="display:none;"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let database = null;
+        let accountExists = false;
+        let existingUsername = '';
+
+        function initFirebase() {
+            if (typeof firebaseConfig !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                database = firebase.database();
+                checkExistingAccount();
+            } else {
+                document.getElementById('message').innerHTML = '❌ config.js not found!';
+            }
+        }
+
+        function checkExistingAccount() {
+            if (!database) return;
+
+            database.ref('admin_auth').once('value').then(snapshot => {
+                const data = snapshot.val();
+
+                if (data && data.username && data.password) {
+                    accountExists = true;
+                    existingUsername = data.username;
+
+                    // Show warning
+                    document.getElementById('warningMsg').style.display = 'block';
+                    document.getElementById('warningMsg').innerHTML = `⚠️ ACCOUNT ALREADY EXISTS!<br>Username: "${existingUsername}"<br><br>Setup is DISABLED. Use "Forgot Password" option on login page to reset password.`;
+
+                    // Show info message
+                    document.getElementById('infoMsg').style.display = 'block';
+                    document.getElementById('infoMsg').innerHTML = `✅ Account already configured. Please go back to login page.`;
+
+                    // Disable all input fields
+                    document.getElementById('username').disabled = true;
+                    document.getElementById('password').disabled = true;
+                    document.getElementById('confirmPassword').disabled = true;
+
+                    // Disable setup button
+                    const setupBtn = document.getElementById('setupBtn');
+                    setupBtn.disabled = true;
+                    setupBtn.style.opacity = '0.5';
+                    setupBtn.style.cursor = 'not-allowed';
+                    setupBtn.innerHTML = '🔒 Setup Disabled (Account Exists)';
+
+                    // Change subtitle
+                    document.getElementById('subtitle').innerHTML = '🔒 Setup Locked - Account Already Exists';
+                    document.getElementById('subtitle').style.color = '#ef4444';
+
+                    // Show disabled reason
+                    document.getElementById('disabledReason').style.display = 'block';
+                    document.getElementById('disabledReason').innerHTML = `
+                    🔒 Why is setup disabled?<br>
+                    • An admin account already exists with username: <strong>${existingUsername}</strong><br>
+                    • For security, only ONE account can be created.<br>
+                    • To reset password, go to login page → "Forgot Password"<br>
+                    • To create new account, first delete existing from Firebase RTDB
+                `;
+
+                    // Placeholder values show karo
+                    document.getElementById('username').placeholder = `Account already exists: ${existingUsername}`;
+
+                } else {
+                    // No account exists - setup is enabled
+                    accountExists = false;
+                    document.getElementById('infoMsg').style.display = 'block';
+                    document.getElementById('infoMsg').innerHTML = '✅ No account found. You can create new admin account.';
+                    document.getElementById('infoMsg').style.borderColor = '#4ade80';
+                    document.getElementById('infoMsg').style.color = '#4ade80';
+                }
+            }).catch(err => {
+                console.error('Error checking account:', err);
+            });
+        }
+
+        function setupAccount() {
+            // Agar account already exists to return
+            if (accountExists) {
+                document.getElementById('message').innerHTML = '❌ Setup disabled! Account already exists.';
+                document.getElementById('message').className = 'error';
+                return;
+            }
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (!username) {
+                document.getElementById('message').innerHTML = '❌ Enter username';
+                return;
+            }
+
+            if (username.length < 3) {
+                document.getElementById('message').innerHTML = '❌ Username must be at least 3 characters';
+                return;
+            }
+
+            if (password.length < 6) {
+                document.getElementById('message').innerHTML = '❌ Password must be at least 6 characters';
+                return;
+            }
+
+            if (password !== confirm) {
+                document.getElementById('message').innerHTML = '❌ Passwords do not match';
+                return;
+            }
+
+            if (!database) {
+                document.getElementById('message').innerHTML = '❌ Firebase not initialized';
+                return;
+            }
+
+            document.getElementById('message').innerHTML = '⏳ Creating account...';
+
+            const authData = {
+                username: username,
+                password: password,
+                createdAt: Date.now(),
+                createdAtTime: new Date().toLocaleString(),
+                createdFrom: window.location.href
+            };
+
+            database.ref('admin_auth').set(authData).then(() => {
+                document.getElementById('message').innerHTML = '✅ Account created successfully! Redirecting to login...';
+                document.getElementById('message').className = 'success';
+
+                // Disable form after successful setup
+                document.getElementById('username').disabled = true;
+                document.getElementById('password').disabled = true;
+                document.getElementById('confirmPassword').disabled = true;
+                document.getElementById('setupBtn').disabled = true;
+
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }).catch(err => {
+                document.getElementById('message').innerHTML = '❌ Error: ' + err.message;
+            });
+        }
+
+        function goBack() {
+            window.location.href = 'login.html';
+        }
+
+        if (typeof firebaseConfig !== 'undefined') {
+            initFirebase();
+        } else {
+            window.addEventListener('load', () => {
+                if (typeof firebaseConfig !== 'undefined') {
+                    initFirebase();
+                } else {
+                    document.getElementById('message').innerHTML = '❌ config.js not found!';
+                }
+            });
+        }
+    </script>
+
+</body>
+
+</html>
